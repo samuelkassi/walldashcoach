@@ -1,6 +1,6 @@
 # Phase 4 results (2 Nov 2026)
 
-**Result: chains and the sample counter work and the analysis is done. Reset to wall still needs checking in game.**
+**Result: chains and the sample counter work and the analysis is done. Reset to wall was built in this phase but removed before version 1.0.0, without having been tested in game. It may return in a later version.**
 
 Source: 1,080 attempts recorded after the chain measures were added, in `data/attempts.csv`. That gives 888 real dashes, of which 647 are follow-ups in a chain (310 left wall, 337 right wall), with 89% makes. Run `python tools/analyze_chains.py` and `python tools/analyze_normal_speed.py` to reproduce this.
 
@@ -146,6 +146,5 @@ One player, one evening, and observational data. Players did not have turn size 
 
 ## Still to check in game
 
-- Reset to wall on each wall, side and direction.
 - Whether settings and the counter survive a game restart.
 - `walldash_export_share_data`.

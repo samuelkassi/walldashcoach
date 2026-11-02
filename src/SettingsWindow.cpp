@@ -57,20 +57,6 @@ void WallDashTrainer::RenderSettings()
 		SettingsSlider("Target per wall", "walldash_sample_target", 1.f, 2000.f, "%.0f");
 	}
 
-	if (ImGui::CollapsingHeader("Reset to wall"))
-	{
-		ImGui::TextUnformatted("Bind walldash_reset_to_wall to a button in the BakkesMod Bindings tab. Freeplay on standard maps only.");
-		SettingsCheckbox("Allow reset to wall", "walldash_reset_on");
-		SettingsCheckbox("Back wall (off is a side wall)", "walldash_reset_back");
-		SettingsCheckbox("Wall on your right (off is on your left)", "walldash_reset_right");
-		SettingsCheckbox("Reverse direction along the wall", "walldash_reset_reverse");
-		SettingsSlider("Height", "walldash_reset_height", 200.f, 1800.f, "%.0f");
-		SettingsSlider("Speed (uu/s)", "walldash_reset_speed", 0.f, 2300.f, "%.0f");
-		SettingsSlider("Boost (%)", "walldash_reset_boost", 0.f, 100.f, "%.0f");
-		if (ImGui::Button("Reset to wall now"))
-			gameWrapper->Execute([this](GameWrapper*) { ResetToWall(); });
-	}
-
 	if (ImGui::CollapsingHeader("Overlay panels", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		for (const OverlayPanel& panel : overlay.Panels())

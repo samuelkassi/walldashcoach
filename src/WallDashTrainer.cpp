@@ -158,10 +158,6 @@ void WallDashTrainer::onLoad()
 	HookComponentEvent("Function CarComponent_DoubleJump_TA.Active.BeginState", "double_jump_begin");
 	HookComponentEvent("Function CarComponent_Dodge_TA.Active.BeginState", "dodge_begin");
 
-	cvarManager->registerNotifier("walldash_reset_to_wall",
-		[this](std::vector<std::string>) { ResetToWall(); },
-		"Place the car on the wall chosen in the settings. Freeplay only", PERMISSION_ALL);
-
 	gameWrapper->RegisterDrawable([this](CanvasWrapper canvas) { RenderOverlay(canvas); });
 
 	LOG("WallDash Trainer {} loaded. Settings are in the F2 menu, under Plugins.", plugin_version);
@@ -229,63 +225,6 @@ void WallDashTrainer::LoadChainSampleCounts()
 			walldash::AddChainSampleFromCsv(file, chainSample);
 		}
 	}
-}
-
-void WallDashTrainer::ResetToWall()
-{
-	if (!*resetEnabled)
-	{
-		LOG("WallDash Trainer: reset to wall is off. Turn it on in the settings window.");
-		return;
-	}
-	if (!gameWrapper->IsInFreeplay())
-		return;
-	CarWrapper car = gameWrapper->GetLocalCar();
-	if (car.IsNull())
-		return;
-
-	// Sizes of the standard arena. The car's centre rests about 17 uu off a wall.
-	constexpr float kSideWallX = 4096.f;
-	constexpr float kBackWallY = 5120.f;
-	constexpr float kRestDistance = 17.f;
-	constexpr float kSideStart = 3000.f; // Far enough from the corners to have a run along the flat wall.
-	constexpr float kBackStart = 2500.f;
-	constexpr float kBackMinHeight = 750.f; // Stays above the goal.
-	constexpr float kMinHeight = 200.f;
-	constexpr float kMaxHeight = 1800.f;
-	constexpr int kQuarterTurn = 16384;
-
-	const bool back = *resetBack;
-	const float direction = *resetReverse ? -1.f : 1.f;
-
-	Rotator rotation;
-	rotation.Pitch = 0;
-	rotation.Yaw = back ? (direction > 0.f ? 0 : 2 * kQuarterTurn) : (direction > 0.f ? kQuarterTurn : -kQuarterTurn);
-	// With the wall on the driver's right, the car's right side points at the ceiling.
-	rotation.Roll = *resetRight ? -kQuarterTurn : kQuarterTurn;
-
-	const CarAxes axes = AxesFromRotator(rotation);
-	Vector location;
-	location.Z = std::clamp(*resetHeight, back ? kBackMinHeight : kMinHeight, kMaxHeight);
-	if (back)
-	{
-		location.X = -direction * kBackStart;
-		location.Y = (axes.up.Y > 0.f ? -kBackWallY : kBackWallY) + axes.up.Y * kRestDistance;
-	}
-	else
-	{
-		location.X = (axes.up.X > 0.f ? -kSideWallX : kSideWallX) + axes.up.X * kRestDistance;
-		location.Y = -direction * kSideStart;
-	}
-
-	car.SetLocation(location);
-	car.SetRotation(rotation);
-	car.SetVelocity(Vector(axes.forward.X * *resetSpeed, axes.forward.Y * *resetSpeed, axes.forward.Z * *resetSpeed));
-	car.SetAngularVelocity(Vector(0.f), false);
-
-	BoostWrapper boost = car.GetBoostComponent();
-	if (!boost.IsNull())
-		boost.SetCurrentBoostAmount(boost.GetMaxBoostAmount() * std::clamp(*resetBoost, 0.f, 100.f) / 100.f);
 }
 
 void WallDashTrainer::RenderOverlay(CanvasWrapper canvas)
@@ -387,19 +326,6 @@ void WallDashTrainer::RegisterCvars()
 		[secondsToTicks](AttemptConfig& c, float v) { c.chainGapTicks = secondsToTicks(v); });
 	RegisterConfigCvar("walldash_prepress_window_s", "0.25", "How far before the first press the turn and height measures look",
 		[secondsToTicks](AttemptConfig& c, float v) { c.prepressWindowTicks = secondsToTicks(v); });
-
-	const auto registerResetCvar = [this](const std::string& name, const std::string& value, const std::string& description)
-		{
-			resettableCvars.push_back(name);
-			return cvarManager->registerCvar(name, value, description);
-		};
-	registerResetCvar("walldash_reset_on", "0", "Allow the reset to wall command").bindTo(resetEnabled);
-	registerResetCvar("walldash_reset_back", "0", "Reset to the back wall instead of a side wall").bindTo(resetBack);
-	registerResetCvar("walldash_reset_right", "1", "Reset with the wall on the driver's right").bindTo(resetRight);
-	registerResetCvar("walldash_reset_reverse", "0", "Reset heading the other way along the wall").bindTo(resetReverse);
-	registerResetCvar("walldash_reset_height", "800", "Reset height").bindTo(resetHeight);
-	registerResetCvar("walldash_reset_speed", "1500", "Reset speed along the wall in uu/s").bindTo(resetSpeed);
-	registerResetCvar("walldash_reset_boost", "100", "Reset boost as a percentage").bindTo(resetBoost);
 
 	RegisterConfigCvar("walldash_flip_yellow_min", "45", "Flip angle below this is too forward, a miss reason",
 		[](AttemptConfig& c, float v) { c.flipYellowMin = v; });

@@ -39,8 +39,6 @@ Everything can be changed in the settings window, including every band and each 
 
 **Chains** (off by default): shows your current and best chain and the speed lost between dashes. A chain continues while each dash is a make and the next jump comes within 1 second of landing. An optional counter tracks how many chain dashes you have recorded per wall.
 
-**Reset to wall** (off by default): places the car on a chosen wall at a set height, speed, direction and boost, so every rep starts the same. Turn it on in the settings, then bind `walldash_reset_to_wall` to a button in the BakkesMod Bindings tab. It needs a standard-size map.
-
 **Console commands** (F6):
 
 | Command | What it does |
