@@ -111,6 +111,10 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	cvarManager->registerCvar("walldash_speed_red_below", "0", "Speed gain below this draws red. At 0 only a loss is red", true, true, 0, true, 600).bindTo(speedRedBelow);
 	cvarManager->registerCvar("walldash_stats_by_wall", "1", "Show session stats separately for the left and right walls", true, true, 0, true, 1).bindTo(statsByWall);
 	cvarManager->registerCvar("walldash_chains_on", "0", "Show the chain counter and speed lost between dashes", true, true, 0, true, 1).bindTo(chainsOn);
+	cvarManager->registerCvar("walldash_sample_counter_on", "0", "Show progress toward a sample of chain dashes per wall", true, true, 0, true, 1).bindTo(sampleCounterOn);
+	cvarManager->registerCvar("walldash_sample_target", "300", "Chain dashes per wall to collect", true, true, 1, true, 5000).bindTo(sampleTarget);
+	cvarNames.push_back("walldash_sample_counter_on");
+	cvarNames.push_back("walldash_sample_target");
 	cvarNames.push_back("walldash_chains_on");
 	cvarNames.push_back("walldash_stats_by_wall");
 	cvarNames.push_back("walldash_overlay_on");
@@ -127,6 +131,7 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	AddPanel(cvarManager, "stats", "Session stats", 0.42f, 0.87f);
 	AddPanel(cvarManager, "chain", "Chain counter", 0.64f, 0.76f);
 	AddPanel(cvarManager, "speedloss", "Speed lost between dashes", 0.64f, 0.80f);
+	AddPanel(cvarManager, "chainsample", "Chain sample counter", 0.64f, 0.83f);
 }
 
 void Overlay::Draw(CanvasWrapper& canvas, const OverlayData& data)
@@ -153,6 +158,7 @@ void Overlay::Draw(CanvasWrapper& canvas, const OverlayData& data)
 		else if (panel.id == "stats") DrawStats(canvas, panel, data, scale);
 		else if (panel.id == "chain" && *chainsOn) DrawChain(canvas, panel, data, scale);
 		else if (panel.id == "speedloss" && *chainsOn) DrawSpeedLoss(canvas, panel, data, scale);
+		else if (panel.id == "chainsample" && *sampleCounterOn) DrawChainSample(canvas, panel, data, scale);
 	}
 }
 
@@ -469,6 +475,14 @@ void Overlay::DrawSpeedLoss(CanvasWrapper& canvas, const OverlayPanel& panel, co
 		? "Lost between dashes: none yet"
 		: std::format("Lost between dashes: {:.0f} uu/s", data.chainLastSpeedLost);
 	DrawText(canvas, text, pos, kTextScale * scale, kWhite);
+}
+
+void Overlay::DrawChainSample(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale)
+{
+	const Vector2F pos{ *panel.x * screen.X, *panel.y * screen.Y };
+	const int target = static_cast<int>(*sampleTarget);
+	const bool done = data.chainSample.left >= target && data.chainSample.right >= target;
+	DrawText(canvas, std::format("Chain sample: left {}/{}, right {}/{}", data.chainSample.left, target, data.chainSample.right, target), pos, kTextScale * scale, done ? kGreen : kWhite);
 }
 
 void Overlay::DrawStats(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale)

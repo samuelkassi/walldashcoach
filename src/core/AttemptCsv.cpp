@@ -1,7 +1,11 @@
 #include "AttemptCsv.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <format>
+#include <istream>
+#include <ostream>
 #include <sstream>
 
 namespace walldash
@@ -9,6 +13,23 @@ namespace walldash
 	namespace
 	{
 		constexpr float kNormalSpeedMin = 0.95f;
+
+		// Splits on commas outside quotes, keeping each field's text exactly as written.
+		std::vector<std::string> SplitCsvLine(const std::string& line)
+		{
+			std::vector<std::string> fields(1);
+			bool quoted = false;
+			for (char c : line)
+			{
+				if (c == '"')
+					quoted = !quoted;
+				if (c == ',' && !quoted)
+					fields.emplace_back();
+				else
+					fields.back() += c;
+			}
+			return fields;
+		}
 
 		std::string Number(float value, int decimals = 2)
 		{
@@ -101,24 +122,57 @@ namespace walldash
 		return row.str();
 	}
 
+	bool CountsTowardChainSample(const AttemptResult& a)
+	{
+		const bool flat = a.surface == Surface::SideWall || a.surface == Surface::BackWall;
+		return flat && a.gameSpeed >= kNormalSpeedMin && !a.spamInput && a.airRollFraction == 0.f
+			&& a.secondPress == SecondPress::Dodge && a.chainIndex >= 2;
+	}
+
+	void AddChainSampleFromCsv(std::istream& in, ChainSampleCounts& counts)
+	{
+		std::string line;
+		if (!std::getline(in, line))
+			return;
+
+		const std::vector<std::string> header = SplitCsvLine(line);
+		const auto column = [&](const char* name)
+			{
+				const auto found = std::find(header.begin(), header.end(), name);
+				return found == header.end() ? -1 : static_cast<int>(found - header.begin());
+			};
+		const int surface = column("surface");
+		const int side = column("wall_side");
+		const int speed = column("game_speed");
+		const int spam = column("spam_input");
+		const int airRoll = column("air_roll_fraction");
+		const int second = column("second_press_result");
+		const int chainIndex = column("chain_index");
+		// Older files have no movement before the press, so they do not count.
+		if (column("turn_size_prepress") < 0 || surface < 0 || side < 0 || speed < 0 || spam < 0 || airRoll < 0 || second < 0 || chainIndex < 0)
+			return;
+
+		const auto number = [](const std::string& text)
+			{
+				return text.empty() ? 0.f : std::strtof(text.c_str(), nullptr);
+			};
+		while (std::getline(in, line))
+		{
+			const std::vector<std::string> f = SplitCsvLine(line);
+			if (f.size() != header.size())
+				continue;
+			const bool flat = f[surface] == "side_wall" || f[surface] == "back_wall";
+			if (flat && number(f[speed]) >= kNormalSpeedMin && number(f[spam]) == 0.f && number(f[airRoll]) == 0.f
+				&& f[second] == "dodge" && number(f[chainIndex]) >= 2.f)
+			{
+				(f[side] == "right" ? counts.right : counts.left)++;
+			}
+		}
+	}
+
 	int AnonymizeAttemptCsv(std::istream& in, std::ostream& out, std::map<std::string, int>& sessions)
 	{
-		// Splits on commas outside quotes, keeping each field's text exactly as written.
-		const auto split = [](const std::string& line)
-			{
-				std::vector<std::string> fields(1);
-				bool quoted = false;
-				for (char c : line)
-				{
-					if (c == '"')
-						quoted = !quoted;
-					if (c == ',' && !quoted)
-						fields.emplace_back();
-					else
-						fields.back() += c;
-				}
-				return fields;
-			};
+		const auto split = SplitCsvLine;
 
 		std::string line;
 		if (!std::getline(in, line))

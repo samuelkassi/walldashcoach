@@ -19,6 +19,17 @@ namespace walldash
 	// map for every file so sessions stay numbered in order. Returns rows written.
 	int AnonymizeAttemptCsv(std::istream& in, std::ostream& out, std::map<std::string, int>& sessions);
 
+	// Progress toward a sample of chain dashes: follow-up dashes on flat walls at
+	// normal speed without air roll. Only attempts that logged the movement before
+	// the press count, since that is what the sample is for.
+	struct ChainSampleCounts
+	{
+		int left = 0;
+		int right = 0;
+	};
+	bool CountsTowardChainSample(const AttemptResult& attempt);
+	void AddChainSampleFromCsv(std::istream& in, ChainSampleCounts& counts);
+
 	// Make counts split the way the overlay shows them: flat walls apart from
 	// curves and corners, normal game speed apart from slowed down, and optionally
 	// left wall apart from right wall.

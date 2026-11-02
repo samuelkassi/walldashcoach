@@ -94,6 +94,15 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	if (argc == 3 && std::string(argv[1]) == "--count-chain-sample")
+	{
+		std::ifstream in(argv[2]);
+		ChainSampleCounts counts;
+		AddChainSampleFromCsv(in, counts);
+		std::cout << "left " << counts.left << " right " << counts.right << "\n";
+		return 0;
+	}
+
 	if (argc < 2)
 	{
 		std::cerr << "Usage: ReplayLogs <debug_ticks.csv> [--speed 0.5] [--out attempts.csv] [--expect-left 6/12] [--expect-right 10/10]\n";
@@ -140,6 +149,7 @@ int main(int argc, char** argv)
 	int attemptId = 0;
 	std::map<std::string, int> diagnosisCounts;
 	int bestChain = 0;
+	ChainSampleCounts liveSample;
 
 	AttemptTracker tracker([&](const AttemptResult& a)
 		{
@@ -154,6 +164,8 @@ int main(int argc, char** argv)
 			stats.Add(a);
 
 			bestChain = std::max(bestChain, a.make ? a.chainIndex : a.chainIndex - 1);
+			if (CountsTowardChainSample(a))
+				(a.wallSide == WallSide::Right ? liveSample.right : liveSample.left)++;
 
 			char line[256];
 			std::snprintf(line, sizeof(line), "%3d chain %3d.%-2d lost %6.1f %-5s %-9s %-4s p2p %3d ticks  flip %6.1f  %s", attemptId, a.chainId, a.chainIndex, a.speedLostSinceLast,
@@ -190,6 +202,7 @@ int main(int argc, char** argv)
 
 	std::cout << "\n" << stats.Summary(true) << "\n";
 	std::cout << "Best chain " << bestChain << "\n";
+	std::cout << "Chain sample left " << liveSample.left << " right " << liveSample.right << "\n";
 	std::cout << "Left wall " << makes[0] << "/" << attempts[0] << ", right wall " << makes[1] << "/" << attempts[1] << "\n";
 
 	const bool leftOk = CheckExpected("left", expectLeft, makes[0], attempts[0]);

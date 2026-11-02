@@ -38,6 +38,7 @@ private:
 	void ResetSettingsToDefaults();
 	void ExportShareData();
 	void ResetToWall();
+	void LoadChainSampleCounts();
 	void RenderOverlay(CanvasWrapper canvas);
 
 	// Deadzone and sensitivity values. They rarely change, so they are read
@@ -79,6 +80,7 @@ private:
 
 	walldash::AttemptTracker tracker{ [this](const walldash::AttemptResult& attempt) { OnAttemptFinished(attempt); } };
 	walldash::SessionStats stats;
+	walldash::ChainSampleCounts chainSample;
 
 	Overlay overlay;
 	walldash::AttemptResult lastAttempt;

@@ -127,6 +127,7 @@ void WallDashTrainer::onLoad()
 	speedWindowStart = std::chrono::steady_clock::now();
 
 	RegisterCvars();
+	LoadChainSampleCounts();
 
 	cvarManager->registerNotifier("walldash_reset_stats",
 		[this](std::vector<std::string>) { ResetSessionStats(); },
@@ -215,6 +216,21 @@ void WallDashTrainer::ExportShareData()
 	LOG("WallDash Trainer: nothing has been sent. Sharing these files is up to you, and the README explains how.");
 }
 
+void WallDashTrainer::LoadChainSampleCounts()
+{
+	namespace fs = std::filesystem;
+	std::error_code error;
+	chainSample = walldash::ChainSampleCounts{};
+	for (const fs::directory_entry& entry : fs::directory_iterator(gameWrapper->GetDataFolder() / "walldashtrainer", error))
+	{
+		if (entry.path().filename().string().starts_with("attempts_") && entry.path().extension() == ".csv")
+		{
+			std::ifstream file(entry.path());
+			walldash::AddChainSampleFromCsv(file, chainSample);
+		}
+	}
+}
+
 void WallDashTrainer::ResetToWall()
 {
 	if (!*resetEnabled)
@@ -282,6 +298,7 @@ void WallDashTrainer::RenderOverlay(CanvasWrapper canvas)
 	data.chainCurrent = chain.current;
 	data.chainBest = chain.best;
 	data.chainLastSpeedLost = chain.lastSpeedLost;
+	data.chainSample = chainSample;
 	data.live = tracker.IsActive() ? &tracker.Current() : nullptr;
 	data.finished = hasLastAttempt ? &lastAttempt : nullptr;
 	data.latestFrame = tracker.LatestFrame();
@@ -552,7 +569,13 @@ void WallDashTrainer::OnAttemptFinished(const AttemptResult& attempt)
 	}
 
 	if (*attemptLogEnabled)
+	{
 		WriteAttemptRow(attempt);
+
+		// Only attempts saved to a file count, so the number stays the same after a restart.
+		if (walldash::CountsTowardChainSample(attempt))
+			(attempt.wallSide == walldash::WallSide::Right ? chainSample.right : chainSample.left)++;
+	}
 }
 
 std::filesystem::path WallDashTrainer::AttemptFilePath()

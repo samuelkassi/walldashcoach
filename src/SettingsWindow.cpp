@@ -51,6 +51,10 @@ void WallDashTrainer::RenderSettings()
 		ImGui::TextUnformatted("Chains are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
 		SettingsCheckbox("Show chains", "walldash_chains_on");
 		SettingsSlider("Longest gap from reattaching to the next jump (s)", "walldash_chain_gap_s", 0.1f, 3.f, "%.2f");
+		ImGui::Separator();
+		ImGui::TextUnformatted("For collecting chain data. Counts follow-up dashes across sessions, from your saved attempt files.");
+		SettingsCheckbox("Show chain sample counter", "walldash_sample_counter_on");
+		SettingsSlider("Target per wall", "walldash_sample_target", 1.f, 2000.f, "%.0f");
 	}
 
 	if (ImGui::CollapsingHeader("Reset to wall"))
