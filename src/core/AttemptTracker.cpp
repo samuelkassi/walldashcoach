@@ -59,6 +59,7 @@ namespace walldash
 		case Diagnosis::None: return "none";
 		case Diagnosis::NotFullyOnWall: return "not_fully_on_wall";
 		case Diagnosis::NoSecondJump: return "no_second_jump";
+		case Diagnosis::TooEarly: return "too_early";
 		case Diagnosis::DoubleJump: return "double_jump";
 		case Diagnosis::TooLate: return "too_late";
 		case Diagnosis::HeldTooLong: return "held_too_long";
@@ -229,6 +230,8 @@ namespace walldash
 		ticksInAttempt = 0;
 		throttleTicks = boostTicks = powerslideTicks = airRollTicks = 0;
 		releaseFrame = -1;
+		lastPressFrame = -1;
+		measuredPressFrame = -1;
 		dodgeFrame = -1;
 		flipCaptured = false;
 		leftWall = false;
@@ -242,8 +245,19 @@ namespace walldash
 
 	void AttemptTracker::OnJumpPressed()
 	{
-		if (active)
-			attempt.jumpPresses++;
+		if (!active || !hasLast)
+			return;
+
+		attempt.jumpPresses++;
+		lastPressFrame = last.frame;
+
+		// Measured here as well as at the dodge, because a press with the wheels
+		// still down starts no component at all.
+		if (measuredPressFrame < 0)
+		{
+			measuredPressFrame = last.frame;
+			MeasureSecondPress(last);
+		}
 	}
 
 	void AttemptTracker::OnJumpReleased()
@@ -262,7 +276,17 @@ namespace walldash
 		// A first jump is only possible with wheels down, so an attempt still
 		// open here has already come back to a surface.
 		if (active)
+		{
+			// The press that started this jump fired first and landed on the old
+			// attempt, so it is taken back.
+			if (lastPressFrame == last.frame)
+			{
+				attempt.jumpPresses--;
+				if (measuredPressFrame == last.frame)
+					ClearSecondPressMeasurements();
+			}
 			Finish();
+		}
 
 		const float upZ = last.up.z;
 		if (upZ >= config.floorUpZ || upZ <= config.ceilingUpZ)
@@ -272,22 +296,44 @@ namespace walldash
 		// The press that started this jump fired just before it, while no attempt was open.
 	}
 
+	void AttemptTracker::MeasureSecondPress(const TickSample& sample)
+	{
+		attempt.pressToPressTicks = sample.frame - attempt.startFrame;
+		attempt.releaseToPressTicks = releaseFrame >= 0 ? sample.frame - releaseFrame : -1;
+		attempt.wheelsAtSecondPress = sample.wheelContacts;
+
+		attempt.stickPitch = sample.pitch;
+		attempt.stickYaw = sample.yaw;
+		attempt.stickRoll = sample.roll;
+		attempt.stickMagnitude = std::sqrt(sample.pitch * sample.pitch + sample.yaw * sample.yaw);
+		attempt.stickSum = std::abs(sample.pitch) + std::abs(sample.yaw) + std::abs(sample.roll);
+		attempt.pastDodgeDeadzone = attempt.stickSum >= sample.dodgeDeadzone;
+	}
+
+	void AttemptTracker::ClearSecondPressMeasurements()
+	{
+		measuredPressFrame = -1;
+		attempt.pressToPressTicks = -1;
+		attempt.releaseToPressTicks = -1;
+		attempt.wheelsAtSecondPress = -1;
+		attempt.stickPitch = kNotMeasured;
+		attempt.stickYaw = kNotMeasured;
+		attempt.stickRoll = kNotMeasured;
+		attempt.stickMagnitude = kNotMeasured;
+		attempt.stickSum = kNotMeasured;
+		attempt.pastDodgeDeadzone = false;
+	}
+
 	void AttemptTracker::RecordSecondPress(SecondPress result)
 	{
 		if (!active || !hasLast || attempt.secondPress != SecondPress::None)
 			return;
 
+		// The press that produced the component is the one that counts, which
+		// may be later than an earlier press the game ignored.
 		attempt.secondPress = result;
-		attempt.pressToPressTicks = last.frame - attempt.startFrame;
-		if (releaseFrame >= 0)
-			attempt.releaseToPressTicks = last.frame - releaseFrame;
-
-		attempt.stickPitch = last.pitch;
-		attempt.stickYaw = last.yaw;
-		attempt.stickRoll = last.roll;
-		attempt.stickMagnitude = std::sqrt(last.pitch * last.pitch + last.yaw * last.yaw);
-		attempt.stickSum = std::abs(last.pitch) + std::abs(last.yaw) + std::abs(last.roll);
-		attempt.pastDodgeDeadzone = attempt.stickSum >= last.dodgeDeadzone;
+		measuredPressFrame = last.frame;
+		MeasureSecondPress(last);
 	}
 
 	void AttemptTracker::OnDoubleJumpBegin()
@@ -346,8 +392,14 @@ namespace walldash
 		}
 		if (a.secondPress == SecondPress::None)
 		{
+			if (a.wheelsAtSecondPress > 0)
+			{
+				a.diagnosis = Diagnosis::TooEarly;
+				a.diagnosisText = std::format("Second press too early: {:.0f} ms, {} wheels still on the wall", a.PressToPressMs(), a.wheelsAtSecondPress);
+				return;
+			}
 			a.diagnosis = Diagnosis::NoSecondJump;
-			a.diagnosisText = "No second jump";
+			a.diagnosisText = a.pressToPressTicks >= 0 ? "Second press gave no flip" : "No second jump";
 			return;
 		}
 		if (a.secondPress == SecondPress::DoubleJump)

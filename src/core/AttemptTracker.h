@@ -34,6 +34,8 @@ namespace walldash
 		void RecordInputs(const TickSample& sample);
 		void CaptureFlipAngle(const TickSample& sample);
 		void UpdateContact(const TickSample& sample);
+		void MeasureSecondPress(const TickSample& sample);
+		void ClearSecondPressMeasurements();
 		void RecordSecondPress(SecondPress result);
 		void Finish();
 		void Diagnose();
@@ -54,6 +56,8 @@ namespace walldash
 		int powerslideTicks = 0;
 		int airRollTicks = 0;
 		int releaseFrame = -1;
+		int lastPressFrame = -1;
+		int measuredPressFrame = -1;
 		int dodgeFrame = -1;
 		Vec3 rightAtDodge;
 		bool flipCaptured = false;

@@ -58,6 +58,7 @@ namespace walldash
 		None, // A make.
 		NotFullyOnWall,
 		NoSecondJump,
+		TooEarly, // Pressed again while the wheels were still down, which the game ignores.
 		DoubleJump,
 		TooLate,
 		HeldTooLong,
@@ -116,6 +117,7 @@ namespace walldash
 		int reattachTicks = -1;
 
 		SecondPress secondPress = SecondPress::None;
+		int wheelsAtSecondPress = -1;
 		float stickPitch = kNotMeasured;
 		float stickYaw = kNotMeasured;
 		float stickRoll = kNotMeasured;

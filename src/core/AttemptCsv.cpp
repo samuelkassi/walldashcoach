@@ -56,7 +56,7 @@ namespace walldash
 		return "timestamp,session_id,attempt_id,result,diagnosis,diagnosis_text,surface,wall_side,game_speed,spam_input,not_fully_on_wall,"
 			"start_frame,wheel_contacts_at_start,jump_presses,"
 			"hold_ticks,hold_ms,release_to_press_ticks,release_to_press_ms,press_to_press_ticks,press_to_press_ms,"
-			"second_press_result,stick_pitch,stick_yaw,stick_roll,stick_magnitude,stick_sum,past_dodge_deadzone,dodge_deadzone,controller_deadzone,"
+			"second_press_result,wheels_at_second_press,stick_pitch,stick_yaw,stick_roll,stick_magnitude,stick_sum,past_dodge_deadzone,dodge_deadzone,controller_deadzone,"
 			"flip_angle_deg,flip_angle_undefined,travel_angle_deg,max_wall_distance,height_at_start,normal_x,normal_y,normal_z,"
 			"speed_first_press,speed_dodge,speed_reattach,speed_peak,speed_gain,"
 			"throttle_fraction,boost_fraction,powerslide_fraction,air_roll_fraction,"
@@ -74,7 +74,7 @@ namespace walldash
 			<< Ticks(a.holdTicks) << ',' << Number(a.HoldMs()) << ','
 			<< Ticks(a.releaseToPressTicks) << ',' << Number(a.ReleaseToPressMs()) << ','
 			<< Ticks(a.pressToPressTicks) << ',' << Number(a.PressToPressMs()) << ','
-			<< ToString(a.secondPress) << ','
+			<< ToString(a.secondPress) << ',' << Ticks(a.wheelsAtSecondPress) << ','
 			<< Number(a.stickPitch, 3) << ',' << Number(a.stickYaw, 3) << ',' << Number(a.stickRoll, 3) << ','
 			<< Number(a.stickMagnitude, 3) << ',' << Number(a.stickSum, 3) << ',' << (a.pastDodgeDeadzone ? 1 : 0) << ','
 			<< Number(a.dodgeDeadzone) << ',' << Number(a.controllerDeadzone) << ','

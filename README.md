@@ -36,7 +36,7 @@ The attempt logic in `src/core` does not depend on the BakkesMod SDK, so it can 
 
 ```
 msbuild tests\ReplayLogs.vcxproj -p:Configuration=Release -p:Platform=x64
-build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect-left 6/12 --expect-right 10/10
+build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect-left 6/12 --expect-right 10/10 --expect-diagnosis too_early=1
 ```
 
 ## Roadmap
@@ -44,8 +44,8 @@ build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect
 | Phase | Goal | State |
 |---|---|---|
 | 0 | Prove the events and measurements work | Done, see [results](docs/PHASE0_RESULTS.md) |
-| 1 | Detect attempts, judge make or miss, write the attempt CSV | In progress |
-| 2 | On-screen overlay and settings window | Planned |
+| 1 | Detect attempts, judge make or miss, write the attempt CSV | Done, see [results](docs/PHASE1_RESULTS.md) |
+| 2 | On-screen overlay and settings window | Next |
 | 3 | Set the timing bands from recorded data | Planned |
 | 4 | Optional chains and reset-to-wall | Planned |
 | 5 | Prepare for release on bakkesplugins.com | Planned |

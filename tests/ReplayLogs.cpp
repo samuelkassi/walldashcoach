@@ -1,8 +1,9 @@
 // Runs recorded debug logs through the attempt logic without the game.
 //
 //   ReplayLogs <debug_ticks.csv> [--speed 0.5] [--out attempts.csv] [--expect-left 6/12] [--expect-right 10/10]
+//              [--expect-diagnosis too_early=1]
 //
-// With --expect-*, exits non-zero when the make counts differ, so it works as a test.
+// With --expect-*, exits non-zero when the counts differ, so it works as a test.
 
 #include "core/AttemptCsv.h"
 #include "core/AttemptTracker.h"
@@ -93,6 +94,7 @@ int main(int argc, char** argv)
 	std::string outPath;
 	std::string expectLeft;
 	std::string expectRight;
+	std::vector<std::string> expectDiagnoses;
 	for (int i = 2; i + 1 < argc; i += 2)
 	{
 		const std::string flag = argv[i];
@@ -100,6 +102,7 @@ int main(int argc, char** argv)
 		else if (flag == "--out") outPath = argv[i + 1];
 		else if (flag == "--expect-left") expectLeft = argv[i + 1];
 		else if (flag == "--expect-right") expectRight = argv[i + 1];
+		else if (flag == "--expect-diagnosis") expectDiagnoses.push_back(argv[i + 1]);
 		else
 		{
 			std::cerr << "Unknown option: " << flag << "\n";
@@ -125,10 +128,12 @@ int main(int argc, char** argv)
 	int makes[2] = { 0, 0 };
 	int attempts[2] = { 0, 0 };
 	int attemptId = 0;
+	std::map<std::string, int> diagnosisCounts;
 
 	AttemptTracker tracker([&](const AttemptResult& a)
 		{
 			attemptId++;
+			diagnosisCounts[ToString(a.diagnosis)]++;
 			const int side = a.wallSide == WallSide::Right ? 1 : 0;
 			if (!a.spamInput)
 			{
@@ -175,5 +180,17 @@ int main(int argc, char** argv)
 
 	const bool leftOk = CheckExpected("left", expectLeft, makes[0], attempts[0]);
 	const bool rightOk = CheckExpected("right", expectRight, makes[1], attempts[1]);
-	return leftOk && rightOk ? 0 : 1;
+
+	bool diagnosesOk = true;
+	for (const std::string& expected : expectDiagnoses)
+	{
+		const size_t split = expected.find('=');
+		const std::string name = expected.substr(0, split);
+		const std::string actual = name + "=" + std::to_string(diagnosisCounts[name]);
+		const bool ok = actual == expected;
+		std::cout << (ok ? "PASS " : "FAIL ") << "diagnosis: expected " << expected << ", got " << actual << "\n";
+		diagnosesOk = diagnosesOk && ok;
+	}
+
+	return leftOk && rightOk && diagnosesOk ? 0 : 1;
 }
