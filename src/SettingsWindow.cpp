@@ -44,6 +44,7 @@ void WallDashTrainer::RenderSettings()
 	ImGui::Separator();
 
 	SettingsCheckbox("Show the overlay", "walldash_overlay_on");
+	SettingsCheckbox("Split session stats by wall", "walldash_stats_by_wall");
 
 	if (ImGui::CollapsingHeader("Overlay panels", ImGuiTreeNodeFlags_DefaultOpen))
 	{

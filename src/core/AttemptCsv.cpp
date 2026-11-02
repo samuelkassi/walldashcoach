@@ -102,7 +102,8 @@ namespace walldash
 
 		const bool flat = a.surface == Surface::SideWall || a.surface == Surface::BackWall;
 		const bool normalSpeed = a.gameSpeed >= kNormalSpeedMin;
-		Bucket& bucket = normalSpeed ? (flat ? flatNormal : otherNormal) : (flat ? flatSlow : otherSlow);
+		WallPair& pair = normalSpeed ? (flat ? flatNormal : otherNormal) : (flat ? flatSlow : otherSlow);
+		Bucket& bucket = a.wallSide == WallSide::Right ? pair.right : pair.left;
 
 		bucket.attempts++;
 		if (a.make)
@@ -112,23 +113,40 @@ namespace walldash
 		}
 	}
 
-	std::vector<std::string> SessionStats::Lines() const
+	std::vector<std::string> SessionStats::Lines(bool splitByWall) const
 	{
 		std::vector<std::string> lines;
-		lines.push_back(std::format("Flat {}", BucketText(flatNormal)));
-		if (otherNormal.attempts > 0)
-			lines.push_back(std::format("Curves and corners {}", BucketText(otherNormal)));
-		if (flatSlow.attempts > 0)
-			lines.push_back(std::format("Slowed flat {}", BucketText(flatSlow)));
-		if (otherSlow.attempts > 0)
-			lines.push_back(std::format("Slowed curves and corners {}", BucketText(otherSlow)));
+
+		const auto addPair = [&](const char* label, const WallPair& pair, bool alwaysShow)
+			{
+				if (splitByWall)
+				{
+					if (alwaysShow || pair.left.attempts > 0)
+						lines.push_back(std::format("{} left {}", label, BucketText(pair.left)));
+					if (alwaysShow || pair.right.attempts > 0)
+						lines.push_back(std::format("{} right {}", label, BucketText(pair.right)));
+					return;
+				}
+
+				Bucket both;
+				both.makes = pair.left.makes + pair.right.makes;
+				both.attempts = pair.left.attempts + pair.right.attempts;
+				both.pressToPressTotalMs = pair.left.pressToPressTotalMs + pair.right.pressToPressTotalMs;
+				if (alwaysShow || both.attempts > 0)
+					lines.push_back(std::format("{} {}", label, BucketText(both)));
+			};
+
+		addPair("Flat", flatNormal, true);
+		addPair("Curves and corners", otherNormal, false);
+		addPair("Slowed flat", flatSlow, false);
+		addPair("Slowed curves and corners", otherSlow, false);
 		return lines;
 	}
 
-	std::string SessionStats::Summary() const
+	std::string SessionStats::Summary(bool splitByWall) const
 	{
 		std::string out;
-		for (const std::string& line : Lines())
+		for (const std::string& line : Lines(splitByWall))
 		{
 			if (!out.empty())
 				out += " | ";

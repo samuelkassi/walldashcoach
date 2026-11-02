@@ -406,7 +406,7 @@ void WallDashTrainer::OnAttemptFinished(const AttemptResult& attempt)
 	if (*consoleLogEnabled)
 	{
 		LOG("{}", DescribeAttempt(attempt));
-		LOG("WallDash: session: {}", stats.Summary());
+		LOG("WallDash: session: {}", stats.Summary(overlay.StatsByWall()));
 	}
 
 	if (*attemptLogEnabled)
@@ -601,7 +601,7 @@ void WallDashTrainer::CloseDebugLog()
 void WallDashTrainer::PrintStatus()
 {
 	LOG("WallDash Trainer: session {}, {} attempts, game speed {:.2f}", sessionId, attemptCount, gameSpeed);
-	LOG("WallDash Trainer: {}", stats.Summary());
+	LOG("WallDash Trainer: {}", stats.Summary(overlay.StatsByWall()));
 	LOG("WallDash Trainer: attempt file: {}", attemptFile.empty() ? "none yet" : attemptFile.string());
 	LOG("WallDash Trainer: debug log {}, file: {}, rows: {}", *debugLogEnabled ? "on" : "off", debugLogPath.empty() ? "none" : debugLogPath, debugRowsWritten);
 	LOG("WallDash Trainer: SetVehicleInput calls on the latest physics frame: {}", callsThisFrame);

@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 		else if (kind == "dodge_begin") tracker.OnDodgeBegin();
 	}
 
-	std::cout << "\n" << stats.Summary() << "\n";
+	std::cout << "\n" << stats.Summary(true) << "\n";
 	std::cout << "Left wall " << makes[0] << "/" << attempts[0] << ", right wall " << makes[1] << "/" << attempts[1] << "\n";
 
 	const bool leftOk = CheckExpected("left", expectLeft, makes[0], attempts[0]);

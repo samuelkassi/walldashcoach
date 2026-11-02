@@ -39,6 +39,7 @@ public:
 
 	const std::vector<OverlayPanel>& Panels() const { return panels; }
 	const std::vector<std::string>& CvarNames() const { return cvarNames; }
+	bool StatsByWall() const { return *statsByWall; }
 
 private:
 	struct Band
@@ -68,4 +69,5 @@ private:
 	std::shared_ptr<float> pressEarlyMs = std::make_shared<float>(58.f);
 	std::shared_ptr<float> pressGreenMs = std::make_shared<float>(80.f);
 	std::shared_ptr<float> speedRedBelow = std::make_shared<float>(0.f);
+	std::shared_ptr<bool> statsByWall = std::make_shared<bool>(true);
 };

@@ -17,6 +17,7 @@ Attempts at normal speed and slowed-down attempts are counted separately, as are
 | Console command | What it does |
 |---|---|
 | `walldash_reset_stats` | Clears the session stats and the last result. |
+| `walldash_stats_by_wall 0` | Shows session stats for both walls together. Split by wall by default. |
 | `walldash_debug_status` | Prints the session stats, log paths and how many times each event fired. |
 | `walldash_console_log 1` | Also prints each attempt to the console. Off by default. |
 | `walldash_attempt_log 0` | Stops writing the attempt CSV. On by default. |

@@ -12,8 +12,9 @@ namespace walldash
 	std::string AttemptCsvHeader();
 	std::string AttemptCsvRow(const AttemptResult& attempt, const std::string& timestamp, const std::string& sessionId, int attemptId);
 
-	// Make counts split the way the overlay will show them: flat walls apart
-	// from curves and corners, and normal game speed apart from slowed down.
+	// Make counts split the way the overlay shows them: flat walls apart from
+	// curves and corners, normal game speed apart from slowed down, and optionally
+	// left wall apart from right wall.
 	struct SessionStats
 	{
 		struct Bucket
@@ -26,15 +27,22 @@ namespace walldash
 			float AveragePressToPressMs() const { return makes == 0 ? 0.f : pressToPressTotalMs / makes; }
 		};
 
-		Bucket flatNormal;
-		Bucket otherNormal;
-		Bucket flatSlow;
-		Bucket otherSlow;
+		// A left wall and a right wall bucket for one kind of attempt.
+		struct WallPair
+		{
+			Bucket left;
+			Bucket right;
+		};
+
+		WallPair flatNormal;
+		WallPair otherNormal;
+		WallPair flatSlow;
+		WallPair otherSlow;
 
 		// Spam attempts are left out.
 		void Add(const AttemptResult& attempt);
-		std::string Summary() const;
-		// One line per bucket that has attempts. Normal speed flat walls always shows.
-		std::vector<std::string> Lines() const;
+		std::string Summary(bool splitByWall) const;
+		// One line per bucket that has attempts. Normal speed flat walls always show.
+		std::vector<std::string> Lines(bool splitByWall) const;
 	};
 }

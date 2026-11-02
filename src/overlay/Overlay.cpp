@@ -110,6 +110,8 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	cvarManager->registerCvar("walldash_press_early_ms", "58", "Press to press below this is in the too early band", true, true, 0, true, 150).bindTo(pressEarlyMs);
 	cvarManager->registerCvar("walldash_press_green_ms", "80", "Press to press up to this is in the green band", true, true, 0, true, 150).bindTo(pressGreenMs);
 	cvarManager->registerCvar("walldash_speed_red_below", "0", "Speed gain below this draws red. At 0 only a loss is red", true, true, 0, true, 600).bindTo(speedRedBelow);
+	cvarManager->registerCvar("walldash_stats_by_wall", "1", "Show session stats separately for the left and right walls", true, true, 0, true, 1).bindTo(statsByWall);
+	cvarNames.push_back("walldash_stats_by_wall");
 	cvarNames.push_back("walldash_overlay_on");
 	cvarNames.push_back("walldash_press_early_ms");
 	cvarNames.push_back("walldash_press_green_ms");
@@ -438,10 +440,17 @@ void Overlay::DrawStats(CanvasWrapper& canvas, const OverlayPanel& panel, const 
 {
 	if (!data.stats)
 		return;
+	const std::vector<std::string> lines = data.stats->Lines(*statsByWall);
+	const float rowHeight = 22.f * scale;
+
+	// More lines appear as more kinds of attempt are played, so the panel moves
+	// up if needed to stay on screen.
 	Vector2F pos{ *panel.x * screen.X, *panel.y * screen.Y };
-	for (const std::string& line : data.stats->Lines())
+	pos.Y = std::max(0.f, std::min(pos.Y, screen.Y - rowHeight * lines.size() - 4.f * scale));
+
+	for (const std::string& line : lines)
 	{
 		DrawText(canvas, line, pos, kTextScale * scale, kWhite);
-		pos.Y += 22.f * scale;
+		pos.Y += rowHeight;
 	}
 }
