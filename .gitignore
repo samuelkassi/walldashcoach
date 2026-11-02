@@ -4,3 +4,4 @@ plugins/
 .vs/
 *.user
 __pycache__/
+Screenshot*.png
