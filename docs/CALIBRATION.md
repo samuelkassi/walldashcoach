@@ -4,7 +4,7 @@ To reproduce this, run `python tools/analyze.py` and `python tools/band_tables.p
 
 ## Sample
 
-1212 real dashes from the 1484 attempts in the dataset: flat walls, 100% speed, no air roll, a dodge with a flip angle from 0 to 90 degrees, and press to press of 21 ticks or less. 858 were makes (71%). The left wall has 627 and the right wall 585.
+1212 real dashes from the first 1484 attempts in the dataset, which has grown since: flat walls, 100% speed, no air roll, a dodge with a flip angle from 0 to 90 degrees, and press to press of 21 ticks or less. 858 were makes (71%). The left wall has 627 and the right wall 585.
 
 ## Answer in one paragraph
 
@@ -134,6 +134,10 @@ The brief hoped for a press to press band that depends on flip angle. It is not 
 Three greens nearly always means a make, but it is not required: most makes had fewer. Press to press matters most of the three. In the dataset, a green press with a non-green flip angle and hold still made 67%, while a non-green press made 76% with a green hold and flip angle, and only 16 to 36% otherwise. A non-green hold matters least when the other two are green (95%).
 
 The player's view after playing on them is that the timing feels a little generous and could have more yellow. The bands stay as they are for now, to be reviewed after public feedback.
+
+## Later test on new data
+
+These findings were later tested on 1,439 newer dashes that were not part of this analysis, and they hold: AUC 0.849 and a mean predicted make rate of 86.4% against 85.5% actual. The back wall advantage above did weaken, to an odds ratio of 1.25 (p 0.11), so it should not be treated as established. See [the Phase 4 results](PHASE4_RESULTS.md).
 
 ## Limits
 

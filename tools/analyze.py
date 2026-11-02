@@ -18,6 +18,7 @@ pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_rows", 100)
 
 a = pd.read_csv("data/attempts.csv")
+a = a[a.attempt_order <= 1484]  # The Phase 3 sample. Later attempts are in analyze_chains.py.
 f = a[(a.game_speed >= 0.95) & a.surface.isin(["side_wall", "back_wall"]) & (a.spam_input == 0)]
 print("flat 100%", len(f), f.groupby("wall_side").size().to_dict())
 n = f[f.air_roll_fraction == 0]

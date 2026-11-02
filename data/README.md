@@ -1,15 +1,16 @@
 # Attempt data
 
-`attempts.csv` holds every wall dash attempt one player recorded with this plugin during development, in the order they were played. It has 1484 attempts across 6 plugin sessions, mostly at 100% game speed, with some at 50%.
+`attempts.csv` holds every wall dash attempt one player recorded with this plugin during development, in the order they were played. It has 3239 attempts across 9 plugin sessions, mostly at 100% game speed, with some at 50%.
+
+The Phase 3 analysis uses the first 1484 attempts (`attempt_order <= 1484`), and the rest were recorded after it.
 
 It was all played on a controller with a dodge deadzone of 0.90, a controller deadzone of 0.08 and air control sensitivity of 1.40. It is one player's data, recorded while they were improving quickly, so it shows that player rather than Rocket League players in general.
 
 ## What differs from the plugin's own CSV
 
 - Timestamps and session ids are removed. `attempt_order` keeps the order, and `session` numbers the plugin sessions from 1.
-- `chain_id` and `chain_index` are removed, because chains did not exist yet.
 - The stick angle and stick sum columns were recalculated from `stick_path`, because earlier versions of the plugin did not log them. They leave out air roll.
-- Columns added during development are blank for earlier attempts. `speed_end`, `total_speed_first_press`, `total_speed_end` and `wheels_at_second_press` are the main ones.
+- Columns added during development are blank for earlier attempts. `speed_end`, `total_speed_first_press`, `total_speed_end` and `wheels_at_second_press` came in partway. The chain columns and the measures before the press, such as `turn_size_prepress`, only exist from attempt 2160 or so onward.
 
 ## Things to watch for
 

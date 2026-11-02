@@ -7,6 +7,7 @@ pd.set_option("display.width", 200)
 pd.set_option("display.max_columns", 30)
 
 a = pd.read_csv("data/attempts.csv")
+a = a[a.attempt_order <= 1484]  # The Phase 3 sample. Later attempts are in analyze_chains.py.
 d = a[(a.game_speed >= 0.95) & a.surface.isin(["side_wall", "back_wall"]) & (a.spam_input == 0) & (a.air_roll_fraction == 0)
       & (a.second_press_result == "dodge") & (a.press_to_press_ticks <= 21) & (a.flip_angle_deg > 0) & (a.flip_angle_deg <= 90) & (a.flip_angle_undefined == 0)].copy()
 d["make"] = (d.result == "make").astype(int)

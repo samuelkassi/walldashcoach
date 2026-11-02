@@ -13,6 +13,8 @@ SLACK = 0.5
 
 paths = sys.argv[1:] or ["data/attempts.csv"]
 a = pd.concat([pd.read_csv(p) for p in paths], ignore_index=True)
+if not sys.argv[1:]:
+    a = a[a.attempt_order <= 1484]  # The Phase 3 sample.
 d = a[(a.game_speed >= 0.95) & a.surface.isin(["side_wall", "back_wall"]) & (a.spam_input == 0) & (a.air_roll_fraction == 0) & (a.second_press_result == "dodge")].copy()
 d["make"] = d.result == "make"
 

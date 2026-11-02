@@ -39,7 +39,7 @@ for name, col in [("first_press", pd.Series(0, index=d.index)), ("release", d.ho
     d[f"stick_angle_{name}"] = np.round(a, 1)
     d[f"stick_sum_{name}"] = np.round(s, 3)
 
-d = d.drop(columns=["timestamp", "session_id", "attempt_id", "_t", "chain_id", "chain_index"])
+d = d.drop(columns=["timestamp", "session_id", "attempt_id", "_t"])
 cols = ["attempt_order", "session"] + [c for c in d.columns if c not in ("attempt_order", "session")]
 d[cols].to_csv("data/attempts.csv", index=False)
 

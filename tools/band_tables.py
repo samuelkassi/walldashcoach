@@ -22,6 +22,7 @@ print("columns where 2026 appears:", hits)
 print("non-numeric columns:", [c for c in pd.read_csv("data/attempts.csv", nrows=50).select_dtypes(exclude="number").columns])
 
 a = pd.read_csv("data/attempts.csv")
+a = a[a.attempt_order <= 1484]  # The Phase 3 sample. Later attempts are in analyze_chains.py.
 f = a[(a.game_speed >= 0.95) & a.surface.isin(["side_wall", "back_wall"]) & (a.spam_input == 0) & (a.air_roll_fraction == 0)]
 d = f[(f.second_press_result == "dodge") & (f.press_to_press_ticks <= 21) & (f.flip_angle_deg > 0) & (f.flip_angle_deg <= 90)].copy()
 d["make"] = (d.result == "make").astype(int)
