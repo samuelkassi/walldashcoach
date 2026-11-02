@@ -1,6 +1,6 @@
 # Phase 0 results (2 Nov 2026)
 
-**Status: the 100% and 50% speed runs both pass. Only the air roll check is still to do.**
+**Result: pass. Phase 0 is complete.**
 
 Source: `debug_ticks_2026-11-02_183112.csv`, a snapshot of about 60,000 ticks in freeplay at 100% speed, with 194 jump presses. The snapshot was taken while logging was still on, so it stops shortly before the end of the session.
 
@@ -19,7 +19,7 @@ The rep blocks in the log line up with the test order, so every test was done. S
 | Press timing may lag `BeginState` | No lag. `OnJumpPressed`, the jump bit and the component `BeginState` all land on the same frame. `OnJumpReleased` also matches the jump bit (194 of 194). |
 | `CarComponent_Dodge_TA.Active.BeginState` | Exists and fires (67). |
 | Jump and Dodge `Active.EndState` | Never fired. Not needed: `GetbActive()` on the component shows the same thing. |
-| Read the dodge direction from the dodge component | Works, but **the value is stale on the `BeginState` frame**. It still holds the previous dodge. Read it one tick later. It is in the car frame: X is forward, Y is right, roughly `(-pitch, yaw)` normalised. A double jump does not update it. |
+| Read the dodge direction from the dodge component | Works, but **the value is stale on the `BeginState` frame**. It still holds the previous dodge. Read it one tick later. It is in the car frame: X is forward, Y is right, matching `(-pitch, yaw + roll)` normalised, so **air roll changes the flip direction** and the stick alone can give the wrong angle. A double jump does not update it. |
 | Dodge deadzone from gamepad settings | Gamepad settings and the PRI both read 0.90. **`DodgeComponentWrapper::GetDodgeInputThreshold()` reads 0.5 and must not be used.** |
 | Wheels "back on the wall" ends the attempt | Wheels keep contact for 7 ticks after the jump in nearly every rep, so the attempt must see contact lost first. |
 | Stick input | Use the `SetVehicleInput` params. Event rows read `car.GetInput()`, which can differ very slightly on the same frame. |
@@ -32,7 +32,7 @@ A dodge happens when `|pitch| + |yaw| + |roll|` reaches the deadzone. It is a su
 - Lowest sum that gave a dodge: 0.913
 - Magnitude does not separate them: a dodge at 0.646 and a double jump at 0.779
 
-Only one rep tests the roll term (roll 1.0, pitch 0.55, yaw 0.06 gave a dodge), so that part needs more data.
+Roll counts. In `debug_ticks_2026-11-02_190047.csv`, all 4 wall reps with directional air roll held and a stick sum under 0.90 (as low as 0.53) gave a dodge. Without roll, wall reps at stick sums up to 0.83 in the 100% run gave double jumps. The set B reps in that log had the stick centred, so they are not a matched control, and the 100% run fills that role.
 
 Consequences for later phases:
 - The "stick not past the deadzone" diagnosis should print this sum.
@@ -87,7 +87,9 @@ With green at 80 ms or less and red above 95 ms, six of these seven would be red
 
 Source: `debug_ticks_2026-11-02_185205.csv`, 22 wall attempts.
 
-**The make rule matches your count.** Your count was every dash on one side and 5 or 6 of about 12 on the other. The rule (3 or more wheels within 30 ticks of first touch, car up within about 25 degrees of the wall normal) gives 10 of 10 and 6 of 12. One thing to settle: your "right side" is the group where the car's right vector points at the ceiling, which means the stick flicks right for a ceiling flip. The plugin should label sides by a defined rule rather than assume.
+**The make rule matches your count.** Your count was every dash on the right wall and 5 or 6 of about 12 on the left. The rule (3 or more wheels within 30 ticks of first touch, car up within about 25 degrees of the wall normal) gives 10 of 10 and 6 of 12.
+
+**Naming the sides:** right wall means the wall is on the driver's right, which is when the car's right vector points at the ceiling (`right_z > 0`). The stick then flicks right for a ceiling flip. On the left wall it flicks left. A position trace from the log confirms the geometry. The right wall reps came after the left wall reps, so the 10 of 10 versus 6 of 12 gap could be warm-up rather than a real difference between sides. Phase 1 should log the side so this can be tested.
 
 **Logged time is game time.** At 50% each tick still logs as 8.33 ms, and ticks arrived far more slowly than 120 per second. Wheels still lost contact 7 ticks after the jump, the same as at 100%. So ticks and logged ms measure the game's physics, whatever the game speed.
 
@@ -109,7 +111,3 @@ Early lead, small sample: the 3 clear misses at 7 to 8 ticks had flip angles of 
 - `IsOnWall()` was true with car up height as high as 0.93, so it includes curves. Surface type must come from the normal.
 - Car up and the wheel contact normal agree (median dot product 1.0, lowest 0.87 on curves), so the rotator to axes conversion is correct.
 - 4 jump presses triggered no component at all (no flip left). Counting presses for `spam_input` must use `OnJumpPressed`, not the components.
-
-## Still to do
-
-- A few more reps with air roll to test the roll term.
