@@ -131,7 +131,7 @@ The brief hoped for a press to press band that depends on flip angle. It is not 
 | 2 | 513 | 86% | 113 | 90% |
 | 3 | 241 | 97% | 87 | 94% |
 
-Three greens nearly always means a make, but it is not required: most makes had fewer. Press to press matters most of the three. In the dataset, a green press with a non-green flip angle and hold still made 67%, while a non-green press with a green hold and flip angle made 76%, and with neither of the others only 16 to 36%. A non-green hold matters least when the other two are green (95%).
+Three greens nearly always means a make, but it is not required: most makes had fewer. Press to press matters most of the three. In the dataset, a green press with a non-green flip angle and hold still made 67%, while a non-green press made 76% with a green hold and flip angle, and only 16 to 36% otherwise. A non-green hold matters least when the other two are green (95%).
 
 The player's view after playing on them is that the timing feels a little generous and could have more yellow. The bands stay as they are for now, to be reviewed after public feedback.
 
