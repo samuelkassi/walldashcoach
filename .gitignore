@@ -5,3 +5,4 @@ plugins/
 *.user
 __pycache__/
 Screenshot*.png
+local/
