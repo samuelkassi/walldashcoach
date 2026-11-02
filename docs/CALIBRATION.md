@@ -120,6 +120,21 @@ The brief's starting bands of green to 80 ms and red above 95 ms do not fit this
 
 The brief hoped for a press to press band that depends on flip angle. It is not worth adding: from 50 to 80 degrees the timing limits barely move, and outside that the angle itself is the problem.
 
+## Do the bands match makes?
+
+`tools/green_check.py` scores each dash by how many of press to press, hold and flip angle were green. These are the same dataset as above, plus the first 244 dashes played with the bands on screen.
+
+| Greens | Dataset: dashes | Dataset: make rate | Played on the bands: dashes | Played on the bands: make rate |
+|---|---|---|---|---|
+| 0 | 124 | 16% | 8 | 25% |
+| 1 | 339 | 49% | 36 | 53% |
+| 2 | 513 | 86% | 113 | 90% |
+| 3 | 241 | 97% | 87 | 94% |
+
+Three greens nearly always means a make, but it is not required: most makes had fewer. Press to press matters most of the three. In the dataset, a green press with a non-green flip angle and hold still made 67%, while a non-green press with a green hold and flip angle made 76%, and with neither of the others only 16 to 36%. A non-green hold matters least when the other two are green (95%).
+
+The player's view after playing on them is that the timing feels a little generous and could have more yellow. The bands stay as they are for now, to be reviewed after public feedback.
+
 ## Limits
 
 - One player, one set of controller settings, and one evening of practice. A stronger or weaker player may have different limits, so the bands should be seen as a starting point and stay adjustable.
