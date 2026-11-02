@@ -62,7 +62,9 @@ namespace walldash
 			"flip_angle_deg,flip_angle_undefined,travel_angle_deg,max_wall_distance,height_at_start,normal_x,normal_y,normal_z,"
 			"speed_first_press,speed_dodge,speed_reattach,speed_peak,speed_gain,speed_end,total_speed_first_press,total_speed_end,"
 			"throttle_fraction,boost_fraction,powerslide_fraction,air_roll_fraction,"
-			"first_touch_ticks,reattach_ticks,max_wheels,car_up_dot_normal,chain_id,chain_index,stick_path";
+			"first_touch_ticks,reattach_ticks,max_wheels,car_up_dot_normal,chain_id,chain_index,speed_lost_since_last,dashes_to_supersonic,max_total_speed,"
+			"prepress_ticks,travel_angle_prepress,travel_angle_prepress_min,turn_size_prepress,height_drop_prepress,speed_change_prepress,wheels_min_prepress,normal_speed_at_press,"
+			"stick_path";
 	}
 
 	std::string AttemptCsvRow(const AttemptResult& a, const std::string& timestamp, const std::string& sessionId, int attemptId)
@@ -91,7 +93,10 @@ namespace walldash
 			<< Number(a.throttleFraction, 3) << ',' << Number(a.boostFraction, 3) << ','
 			<< Number(a.powerslideFraction, 3) << ',' << Number(a.airRollFraction, 3) << ','
 			<< Ticks(a.firstTouchTicks) << ',' << Ticks(a.reattachTicks) << ',' << a.maxWheels << ','
-			<< Number(a.carUpDotNormal, 3) << ",,," // Chain id and index are filled in by Phase 4.
+			<< Number(a.carUpDotNormal, 3) << ','
+			<< a.chainId << ',' << a.chainIndex << ',' << Number(a.speedLostSinceLast, 1) << ',' << Ticks(a.dashesToSupersonic) << ',' << Number(a.maxTotalSpeed, 1) << ','
+			<< a.prepressTicks << ',' << Number(a.travelAnglePrepress, 1) << ',' << Number(a.travelAnglePrepressMin, 1) << ',' << Number(a.turnSizePrepress, 1) << ','
+			<< Number(a.heightDropPrepress, 1) << ',' << Number(a.speedChangePrepress, 1) << ',' << Ticks(a.wheelsMinPrepress) << ',' << Number(a.normalSpeedAtPress, 1) << ','
 			<< StickPath(a.stickPath);
 		return row.str();
 	}

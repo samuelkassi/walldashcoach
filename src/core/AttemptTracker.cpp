@@ -13,6 +13,17 @@ namespace walldash
 		constexpr int kMaxFrameGap = 5;
 		// Further than this in one tick is a teleport, such as a freeplay reset.
 		constexpr float kTeleportDistance = 300.f;
+		// A chain ends when the wheels stay off the wall longer than this between dashes.
+		constexpr int kChainMaxAirTicks = 6;
+		constexpr float kSupersonicSpeed = 2200.f;
+		constexpr size_t kMaxHistoryTicks = 240;
+
+		float TravelAngle(Vec3 velocity, Vec3 normal)
+		{
+			const Vec3 inPlane = velocity - normal * Dot(velocity, normal);
+			const float speed = Length(inPlane);
+			return speed > 1.f ? std::asin(std::clamp(inPlane.z / speed, -1.f, 1.f)) * kRadToDeg : 0.f;
+		}
 
 		Surface ClassifySurface(Vec3 up, const AttemptConfig& config)
 		{
@@ -79,6 +90,107 @@ namespace walldash
 	{
 		active = false;
 		hasLast = false;
+		history.clear();
+		EndChain();
+	}
+
+	void AttemptTracker::ResetChainRecords()
+	{
+		chain = ChainStatus{};
+		chainAlive = false;
+	}
+
+	void AttemptTracker::EndChain()
+	{
+		chainAlive = false;
+		chain.current = 0;
+	}
+
+	void AttemptTracker::UpdateChainWhileIdle(const TickSample& sample)
+	{
+		if (!chainAlive)
+			return;
+
+		chainAirTicks = sample.wheelContacts == 0 ? chainAirTicks + 1 : 0;
+		const bool gapTooLong = sample.frame - chainReattachFrame > config.chainGapTicks;
+		const bool leftWall = chainAirTicks > kChainMaxAirTicks;
+		const bool onFloor = sample.wheelContacts > 0 && (sample.pos.z < config.floorHeight || sample.up.z >= config.floorUpZ);
+		if (gapTooLong || leftWall || onFloor)
+			EndChain();
+	}
+
+	void AttemptTracker::BeginChainEntry()
+	{
+		const bool continuing = chainAlive;
+		if (!continuing)
+		{
+			chainId++;
+			chainIndex = 0;
+			chainReachedSupersonic = false;
+			chain.current = 0;
+		}
+		chainIndex++;
+		attempt.chainId = chainId;
+		attempt.chainIndex = chainIndex;
+		attempt.speedLostSinceLast = continuing ? chainLastPeak - attempt.speedFirstPress : kNotMeasured;
+		chain.lastSpeedLost = attempt.speedLostSinceLast;
+
+		// Finishing this attempt decides whether the chain carries on.
+		chainAlive = false;
+	}
+
+	void AttemptTracker::FinishChainEntry()
+	{
+		if (!attempt.make)
+		{
+			EndChain();
+			return;
+		}
+
+		chain.current++;
+		chain.best = std::max(chain.best, chain.current);
+		chainAlive = true;
+		chainAirTicks = 0;
+		chainReattachFrame = reattachFrame;
+		chainLastPeak = attempt.speedPeak;
+
+		if (!chainReachedSupersonic && attempt.maxTotalSpeed >= kSupersonicSpeed)
+		{
+			chainReachedSupersonic = true;
+			attempt.dashesToSupersonic = chainIndex;
+		}
+	}
+
+	void AttemptTracker::MeasurePrepress(const TickSample& sample)
+	{
+		const size_t window = static_cast<size_t>(std::clamp(config.prepressWindowTicks, 1, static_cast<int>(kMaxHistoryTicks - 1)));
+		const size_t count = std::min(history.size(), window + 1);
+		if (count == 0)
+			return;
+
+		float lowest = 1000.f;
+		float highest = -1000.f;
+		float topHeight = -1e9f;
+		int wheelsMin = 4;
+		for (size_t i = history.size() - count; i < history.size(); i++)
+		{
+			const TickSample& tick = history[i];
+			const float angle = TravelAngle(tick.vel, attempt.normal);
+			lowest = std::min(lowest, angle);
+			highest = std::max(highest, angle);
+			topHeight = std::max(topHeight, tick.pos.z);
+			wheelsMin = std::min(wheelsMin, tick.wheelContacts);
+		}
+
+		const TickSample& windowStart = history[history.size() - count];
+		attempt.prepressTicks = static_cast<int>(count) - 1;
+		attempt.travelAnglePrepress = TravelAngle(windowStart.vel, attempt.normal);
+		attempt.travelAnglePrepressMin = lowest;
+		attempt.turnSizePrepress = highest - lowest;
+		attempt.heightDropPrepress = topHeight - sample.pos.z;
+		attempt.speedChangePrepress = attempt.speedFirstPress - SpeedInWallPlane(windowStart);
+		attempt.wheelsMinPrepress = wheelsMin;
+		attempt.normalSpeedAtPress = Dot(sample.vel, attempt.normal);
 	}
 
 	float AttemptTracker::SpeedInWallPlane(const TickSample& sample) const
@@ -94,11 +206,19 @@ namespace walldash
 		last = sample;
 		hasLast = true;
 
-		if (!active)
-			return;
 		if (frameGap || teleport)
 		{
+			history.clear();
+			EndChain();
 			active = false;
+		}
+		history.push_back(sample);
+		if (history.size() > kMaxHistoryTicks)
+			history.pop_front();
+
+		if (!active)
+		{
+			UpdateChainWhileIdle(sample);
 			return;
 		}
 
@@ -122,6 +242,7 @@ namespace walldash
 	void AttemptTracker::RecordInputs(const TickSample& sample)
 	{
 		ticksInAttempt++;
+		attempt.maxTotalSpeed = std::max(attempt.maxTotalSpeed, Length(sample.vel));
 		if (sample.throttle > 0.f) throttleTicks++;
 		if (sample.boost) boostTicks++;
 		if (sample.powerslide) powerslideTicks++;
@@ -243,6 +364,8 @@ namespace walldash
 		settled = false;
 		active = true;
 
+		MeasurePrepress(sample);
+		BeginChainEntry();
 		RecordInputs(sample);
 	}
 
@@ -293,7 +416,10 @@ namespace walldash
 
 		const float upZ = last.up.z;
 		if (upZ >= config.floorUpZ || upZ <= config.ceilingUpZ)
+		{
+			EndChain();
 			return;
+		}
 
 		StartAttempt(last);
 		// The press that started this jump fired just before it, while no attempt was open.
@@ -388,6 +514,7 @@ namespace walldash
 		measureAt(attempt.holdTicks, attempt.stickAngleRelease, attempt.stickSumRelease);
 		measureAt(attempt.pressToPressTicks, attempt.stickAngleSecondPress, attempt.stickSumSecondPress);
 
+		FinishChainEntry();
 		Diagnose();
 
 		if (onFinished)

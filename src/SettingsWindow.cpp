@@ -46,6 +46,27 @@ void WallDashTrainer::RenderSettings()
 	SettingsCheckbox("Show the overlay", "walldash_overlay_on");
 	SettingsCheckbox("Split session stats by wall", "walldash_stats_by_wall");
 
+	if (ImGui::CollapsingHeader("Chains"))
+	{
+		ImGui::TextUnformatted("Chains are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
+		SettingsCheckbox("Show chains", "walldash_chains_on");
+		SettingsSlider("Longest gap from reattaching to the next jump (s)", "walldash_chain_gap_s", 0.1f, 3.f, "%.2f");
+	}
+
+	if (ImGui::CollapsingHeader("Reset to wall"))
+	{
+		ImGui::TextUnformatted("Bind walldash_reset_to_wall to a button in the BakkesMod Bindings tab. Freeplay on standard maps only.");
+		SettingsCheckbox("Allow reset to wall", "walldash_reset_on");
+		SettingsCheckbox("Back wall (off is a side wall)", "walldash_reset_back");
+		SettingsCheckbox("Wall on your right (off is on your left)", "walldash_reset_right");
+		SettingsCheckbox("Reverse direction along the wall", "walldash_reset_reverse");
+		SettingsSlider("Height", "walldash_reset_height", 200.f, 1800.f, "%.0f");
+		SettingsSlider("Speed (uu/s)", "walldash_reset_speed", 0.f, 2300.f, "%.0f");
+		SettingsSlider("Boost (%)", "walldash_reset_boost", 0.f, 100.f, "%.0f");
+		if (ImGui::Button("Reset to wall now"))
+			gameWrapper->Execute([this](GameWrapper*) { ResetToWall(); });
+	}
+
 	if (ImGui::CollapsingHeader("Overlay panels", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		for (const OverlayPanel& panel : overlay.Panels())

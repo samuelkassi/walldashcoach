@@ -17,6 +17,9 @@ struct OverlayData
 	int latestFrame = 0;
 	const walldash::SessionStats* stats = nullptr;
 	const walldash::AttemptConfig* config = nullptr;
+	int chainCurrent = 0;
+	int chainBest = 0;
+	float chainLastSpeedLost = walldash::kNotMeasured;
 };
 
 // One movable part of the overlay. Position is a fraction of the screen and
@@ -58,6 +61,8 @@ private:
 	void DrawSpeed(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 	void DrawDistance(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 	void DrawStats(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
+	void DrawChain(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
+	void DrawSpeedLoss(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 
 	void DrawRangeBar(CanvasWrapper& canvas, const std::string& text, float value, float maxValue, Vector2F pos, Vector2F size, float scale, const std::vector<Band>& bands);
 
@@ -69,4 +74,5 @@ private:
 	std::shared_ptr<float> pressEarlyMs = std::make_shared<float>(58.f);
 	std::shared_ptr<float> speedRedBelow = std::make_shared<float>(0.f);
 	std::shared_ptr<bool> statsByWall = std::make_shared<bool>(true);
+	std::shared_ptr<bool> chainsOn = std::make_shared<bool>(false);
 };

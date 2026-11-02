@@ -115,6 +115,9 @@ namespace walldash
 		float flipGreenMax = 70.f;
 		float flipYellowMax = 85.f;
 
+		int chainGapTicks = 120; // Longest gap from reattaching to the next first jump in a chain.
+		int prepressWindowTicks = 30; // How far back the measures before the first press look.
+
 		// Press to press limits for a given speed at the first press.
 		const PressBand& PressBandFor(float speed) const
 		{
@@ -208,6 +211,25 @@ namespace walldash
 
 		int maxWheels = 0;
 		float carUpDotNormal = kNotMeasured;
+
+		// Chains. Every attempt belongs to a chain, and a lone attempt is a chain
+		// of one. Index counts from 1.
+		int chainId = 0;
+		int chainIndex = 0;
+		float speedLostSinceLast = kNotMeasured; // Last dash's peak speed minus this first press speed.
+		int dashesToSupersonic = -1; // Set on the make that first reaches supersonic in its chain.
+		float maxTotalSpeed = 0.f;
+
+		// Movement in the ticks before the first press, for testing whether the
+		// turn before a dash matters. Angles follow travelAngleDeg: positive is up.
+		int prepressTicks = 0;
+		float travelAnglePrepress = kNotMeasured; // At the start of the window.
+		float travelAnglePrepressMin = kNotMeasured;
+		float turnSizePrepress = kNotMeasured; // Highest minus lowest travel angle in the window.
+		float heightDropPrepress = kNotMeasured; // Highest point in the window minus height at the press.
+		float speedChangePrepress = kNotMeasured; // Speed at the press minus speed at the start of the window.
+		int wheelsMinPrepress = -1;
+		float normalSpeedAtPress = kNotMeasured; // Speed away from the wall at the press.
 
 		std::vector<StickPoint> stickPath;
 

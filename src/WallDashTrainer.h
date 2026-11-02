@@ -37,6 +37,7 @@ private:
 	void ResetSessionStats();
 	void ResetSettingsToDefaults();
 	void ExportShareData();
+	void ResetToWall();
 	void RenderOverlay(CanvasWrapper canvas);
 
 	// Deadzone and sensitivity values. They rarely change, so they are read
@@ -87,6 +88,14 @@ private:
 	std::shared_ptr<bool> debugLogEnabled = std::make_shared<bool>(false);
 	std::shared_ptr<bool> attemptLogEnabled = std::make_shared<bool>(true);
 	std::shared_ptr<bool> consoleLogEnabled = std::make_shared<bool>(false);
+
+	std::shared_ptr<bool> resetEnabled = std::make_shared<bool>(false);
+	std::shared_ptr<bool> resetBack = std::make_shared<bool>(false);
+	std::shared_ptr<bool> resetRight = std::make_shared<bool>(true);
+	std::shared_ptr<bool> resetReverse = std::make_shared<bool>(false);
+	std::shared_ptr<float> resetHeight = std::make_shared<float>(800.f);
+	std::shared_ptr<float> resetSpeed = std::make_shared<float>(1500.f);
+	std::shared_ptr<float> resetBoost = std::make_shared<float>(100.f);
 
 	std::string sessionId;
 	int attemptCount = 0;

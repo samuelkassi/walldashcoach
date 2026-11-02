@@ -2,10 +2,18 @@
 
 #include "Attempt.h"
 
+#include <deque>
 #include <functional>
 
 namespace walldash
 {
+	struct ChainStatus
+	{
+		int current = 0; // Makes in a row in the chain still going.
+		int best = 0;
+		float lastSpeedLost = kNotMeasured;
+	};
+
 	// Turns ticks and jump events into finished attempts. On each physics frame,
 	// call OnTick first and then any events for that frame, which is the order
 	// the game fires them in.
@@ -34,6 +42,9 @@ namespace walldash
 		const AttemptResult& Current() const { return attempt; }
 		int LatestFrame() const { return last.frame; }
 
+		const ChainStatus& GetChainStatus() const { return chain; }
+		void ResetChainRecords();
+
 	private:
 		void StartAttempt(const TickSample& sample);
 		void RecordInputs(const TickSample& sample);
@@ -45,6 +56,11 @@ namespace walldash
 		void Finish();
 		void Diagnose();
 		float SpeedInWallPlane(const TickSample& sample) const;
+		void MeasurePrepress(const TickSample& sample);
+		void BeginChainEntry();
+		void FinishChainEntry();
+		void EndChain();
+		void UpdateChainWhileIdle(const TickSample& sample);
 
 		AttemptConfig config;
 		Callback onFinished;
@@ -70,5 +86,16 @@ namespace walldash
 		int firstTouchFrame = -1;
 		int reattachFrame = -1;
 		bool settled = false;
+
+		std::deque<TickSample> history;
+
+		ChainStatus chain;
+		bool chainAlive = false;
+		bool chainReachedSupersonic = false;
+		int chainId = 0;
+		int chainIndex = 0;
+		int chainReattachFrame = -1;
+		int chainAirTicks = 0;
+		float chainLastPeak = kNotMeasured;
 	};
 }

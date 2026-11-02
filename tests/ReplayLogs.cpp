@@ -8,6 +8,7 @@
 #include "core/AttemptCsv.h"
 #include "core/AttemptTracker.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -138,6 +139,7 @@ int main(int argc, char** argv)
 	int attempts[2] = { 0, 0 };
 	int attemptId = 0;
 	std::map<std::string, int> diagnosisCounts;
+	int bestChain = 0;
 
 	AttemptTracker tracker([&](const AttemptResult& a)
 		{
@@ -151,9 +153,11 @@ int main(int argc, char** argv)
 			}
 			stats.Add(a);
 
+			bestChain = std::max(bestChain, a.make ? a.chainIndex : a.chainIndex - 1);
+
 			char line[256];
-			std::snprintf(line, sizeof(line), "%3d %-5s %-9s %-4s p2p %3d ticks  flip %6.1f  %s", attemptId, ToString(a.wallSide), ToString(a.surface),
-				a.make ? "MAKE" : "miss", a.pressToPressTicks, a.flipAngleDeg, a.make ? "" : a.diagnosisText.c_str());
+			std::snprintf(line, sizeof(line), "%3d chain %3d.%-2d lost %6.1f %-5s %-9s %-4s p2p %3d ticks  flip %6.1f  %s", attemptId, a.chainId, a.chainIndex, a.speedLostSinceLast,
+				ToString(a.wallSide), ToString(a.surface), a.make ? "MAKE" : "miss", a.pressToPressTicks, a.flipAngleDeg, a.make ? "" : a.diagnosisText.c_str());
 			std::cout << line << "\n";
 			if (out.is_open())
 				out << AttemptCsvRow(a, "replay", "replay", attemptId) << "\n";
@@ -185,6 +189,7 @@ int main(int argc, char** argv)
 	}
 
 	std::cout << "\n" << stats.Summary(true) << "\n";
+	std::cout << "Best chain " << bestChain << "\n";
 	std::cout << "Left wall " << makes[0] << "/" << attempts[0] << ", right wall " << makes[1] << "/" << attempts[1] << "\n";
 
 	const bool leftOk = CheckExpected("left", expectLeft, makes[0], attempts[0]);

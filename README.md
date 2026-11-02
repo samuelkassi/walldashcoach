@@ -16,7 +16,9 @@ Attempts at normal speed and slowed-down attempts are counted separately, as are
 
 | Console command | What it does |
 |---|---|
-| `walldash_reset_stats` | Clears the session stats and the last result. |
+| `walldash_reset_to_wall` | Places the car on the wall chosen in the settings. Turn it on there first, and bind it to a button in the BakkesMod Bindings tab. Freeplay on standard maps only. |
+| `walldash_chains_on 1` | Shows the chain counter and the speed lost between dashes. Off by default. Chains are logged either way. |
+| `walldash_reset_stats` | Clears the session stats, best chain and last result. |
 | `walldash_stats_by_wall 0` | Shows session stats for both walls together. Split by wall by default. |
 | `walldash_debug_status` | Prints the session stats, log paths and how many times each event fired. |
 | `walldash_console_log 1` | Also prints each attempt to the console. Off by default. |
@@ -66,7 +68,7 @@ build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect
 | 1 | Detect attempts, judge make or miss, write the attempt CSV | Done, see [results](docs/PHASE1_RESULTS.md) |
 | 2 | On-screen overlay and settings window | Done, see [results](docs/PHASE2_RESULTS.md) |
 | 3 | Find what drives makes from a large sample, then set the bands from it | Done, see [calibration](docs/CALIBRATION.md) |
-| 4 | Optional chains and reset-to-wall | Next |
+| 4 | Optional chains and reset-to-wall | In progress |
 | 5 | Prepare for release on bakkesplugins.com | Planned |
 
 The original design notes are in [BRIEF.md](BRIEF.md). Later results docs override it where they differ.
