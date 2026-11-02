@@ -128,6 +128,10 @@ void WallDashTrainer::onLoad()
 
 	RegisterCvars();
 
+	cvarManager->registerNotifier("walldash_reset_stats",
+		[this](std::vector<std::string>) { ResetSessionStats(); },
+		"Clear the session stats and the last result", PERMISSION_ALL);
+
 	cvarManager->registerNotifier("walldash_debug_status",
 		[this](std::vector<std::string>) { PrintStatus(); },
 		"Print the session stats, log paths and how many times each event fired", PERMISSION_ALL);
@@ -147,18 +151,52 @@ void WallDashTrainer::onLoad()
 	HookComponentEvent("Function CarComponent_DoubleJump_TA.Active.BeginState", "double_jump_begin");
 	HookComponentEvent("Function CarComponent_Dodge_TA.Active.BeginState", "dodge_begin");
 
-	LOG("WallDash Trainer {} loaded. Attempts print here and save to the data folder.", plugin_version);
+	gameWrapper->RegisterDrawable([this](CanvasWrapper canvas) { RenderOverlay(canvas); });
+
+	LOG("WallDash Trainer {} loaded. Settings are in the F2 menu, under Plugins.", plugin_version);
 }
 
 void WallDashTrainer::onUnload()
 {
+	gameWrapper->UnregisterDrawables();
 	CloseDebugLog();
+}
+
+void WallDashTrainer::RenderOverlay(CanvasWrapper canvas)
+{
+	if (!gameWrapper->IsInFreeplay() || gameWrapper->IsPaused())
+		return;
+
+	OverlayData data;
+	data.live = tracker.IsActive() ? &tracker.Current() : nullptr;
+	data.finished = hasLastAttempt ? &lastAttempt : nullptr;
+	data.latestFrame = tracker.LatestFrame();
+	data.stats = &stats;
+	data.config = &tracker.GetConfig();
+	overlay.Draw(canvas, data);
+}
+
+void WallDashTrainer::ResetSessionStats()
+{
+	stats = walldash::SessionStats{};
+	hasLastAttempt = false;
+}
+
+void WallDashTrainer::ResetSettingsToDefaults()
+{
+	for (const std::string& name : resettableCvars)
+	{
+		CVarWrapper cvar = cvarManager->getCvar(name);
+		if (!cvar.IsNull())
+			cvar.ResetToDefault();
+	}
 }
 
 void WallDashTrainer::RegisterConfigCvar(const std::string& name, const std::string& defaultValue, const std::string& description,
 	std::function<void(walldash::AttemptConfig&, float)> apply)
 {
 	CVarWrapper cvar = cvarManager->registerCvar(name, defaultValue, description);
+	resettableCvars.push_back(name);
 	const auto update = [this, apply](float value)
 		{
 			walldash::AttemptConfig config = tracker.GetConfig();
@@ -204,8 +242,15 @@ void WallDashTrainer::RegisterCvars()
 	RegisterConfigCvar("walldash_angle_min_right_z", "0.2", "Below this the car is too close to straight up or down the wall for a flip angle sign",
 		[](AttemptConfig& c, float v) { c.angleMinRightZ = v; });
 
+	overlay.RegisterCvars(cvarManager);
+	resettableCvars.insert(resettableCvars.end(), overlay.CvarNames().begin(), overlay.CvarNames().end());
+
 	cvarManager->registerCvar("walldash_attempt_log", "1", "Write one CSV row per attempt", true, true, 0, true, 1)
 		.bindTo(attemptLogEnabled);
+	cvarManager->registerCvar("walldash_console_log", "0", "Print each attempt to the console", true, true, 0, true, 1)
+		.bindTo(consoleLogEnabled);
+	resettableCvars.push_back("walldash_attempt_log");
+	resettableCvars.push_back("walldash_console_log");
 
 	cvarManager->registerCvar("walldash_debug_log", "0", "Write the per-tick debug log (Phases 0 and 3)", true, true, 0, true, 1, false)
 		.bindTo(debugLogEnabled);
@@ -346,8 +391,14 @@ void WallDashTrainer::OnAttemptFinished(const AttemptResult& attempt)
 {
 	attemptCount++;
 	stats.Add(attempt);
-	LOG("{}", DescribeAttempt(attempt));
-	LOG("WallDash: session: {}", stats.Summary());
+	lastAttempt = attempt;
+	hasLastAttempt = true;
+
+	if (*consoleLogEnabled)
+	{
+		LOG("{}", DescribeAttempt(attempt));
+		LOG("WallDash: session: {}", stats.Summary());
+	}
 
 	if (*attemptLogEnabled)
 		WriteAttemptRow(attempt);

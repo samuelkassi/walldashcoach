@@ -29,6 +29,11 @@ namespace walldash
 		// Drops any attempt in progress without reporting it.
 		void Reset();
 
+		// The attempt in progress, for live display. Only valid while IsActive().
+		bool IsActive() const { return active; }
+		const AttemptResult& Current() const { return attempt; }
+		int LatestFrame() const { return last.frame; }
+
 	private:
 		void StartAttempt(const TickSample& sample);
 		void RecordInputs(const TickSample& sample);

@@ -4,21 +4,25 @@ A BakkesMod plugin for Rocket League that measures your wall dash attempts in fr
 
 It trains the controlled two-press method: a short first jump off the wall, a flick of the stick, then a second jump that dodges the car back onto the wall.
 
-**Status: early development.** There is no overlay or settings window yet, and no release to install. See [Roadmap](#roadmap).
+**Status: early development.** There is no release to install yet. See [Roadmap](#roadmap).
 
 ## What works today
 
-In freeplay, each wall dash attempt is detected and judged as a make or a miss. The result prints to the console (F6), with the reason for a miss and your session stats, and is saved as one row in `<BakkesMod data folder>/walldashtrainer/attempts_YYYY-MM-DD.csv`.
+In freeplay, each wall dash attempt is detected and judged as a make or a miss. An on-screen overlay shows your timing bars, the verdict with the reason for a miss, your stick path and flip angle, speed gain, distance from the wall and session stats. Each attempt is saved as one row in `<BakkesMod data folder>/walldashtrainer/attempts_YYYY-MM-DD.csv`.
+
+Everything can be changed in the settings window: press F2, then find WallDash Trainer under Plugins.
 
 Attempts at normal speed and slowed-down attempts are counted separately, as are flat walls and curves or corners. Timings are in game time, so 58 ms at 50% speed took about 117 ms of real time.
 
 | Console command | What it does |
 |---|---|
+| `walldash_reset_stats` | Clears the session stats and the last result. |
 | `walldash_debug_status` | Prints the session stats, log paths and how many times each event fired. |
+| `walldash_console_log 1` | Also prints each attempt to the console. Off by default. |
 | `walldash_attempt_log 0` | Stops writing the attempt CSV. On by default. |
 | `walldash_debug_log 1` | Starts a per-tick debug log. Set to `0` to stop. |
 
-The thresholds are cvars starting with `walldash_`, such as `walldash_make_window_ticks` and `walldash_late_press_ms`. They are all listed in `RegisterCvars` in `src/WallDashTrainer.cpp`, and will move to the settings window in Phase 2.
+The second press can't work until the wheels leave the wall, about 7 ticks (58 ms) after the first jump on a flat wall, so the press to press bar has a too-early zone as well as a too-late one.
 
 ## Building from source
 
@@ -45,7 +49,7 @@ build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect
 |---|---|---|
 | 0 | Prove the events and measurements work | Done, see [results](docs/PHASE0_RESULTS.md) |
 | 1 | Detect attempts, judge make or miss, write the attempt CSV | Done, see [results](docs/PHASE1_RESULTS.md) |
-| 2 | On-screen overlay and settings window | Next |
+| 2 | On-screen overlay and settings window | In progress |
 | 3 | Set the timing bands from recorded data | Planned |
 | 4 | Optional chains and reset-to-wall | Planned |
 | 5 | Prepare for release on bakkesplugins.com | Planned |

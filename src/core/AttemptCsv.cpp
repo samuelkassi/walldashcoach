@@ -108,15 +108,28 @@ namespace walldash
 		}
 	}
 
+	std::vector<std::string> SessionStats::Lines() const
+	{
+		std::vector<std::string> lines;
+		lines.push_back(std::format("Flat {}", BucketText(flatNormal)));
+		if (otherNormal.attempts > 0)
+			lines.push_back(std::format("Curves and corners {}", BucketText(otherNormal)));
+		if (flatSlow.attempts > 0)
+			lines.push_back(std::format("Slowed flat {}", BucketText(flatSlow)));
+		if (otherSlow.attempts > 0)
+			lines.push_back(std::format("Slowed curves and corners {}", BucketText(otherSlow)));
+		return lines;
+	}
+
 	std::string SessionStats::Summary() const
 	{
-		std::string out = std::format("Flat {}", BucketText(flatNormal));
-		if (otherNormal.attempts > 0)
-			out += std::format(" | Curves and corners {}", BucketText(otherNormal));
-		if (flatSlow.attempts > 0)
-			out += std::format(" | Slowed flat {}", BucketText(flatSlow));
-		if (otherSlow.attempts > 0)
-			out += std::format(" | Slowed curves and corners {}", BucketText(otherSlow));
+		std::string out;
+		for (const std::string& line : Lines())
+		{
+			if (!out.empty())
+				out += " | ";
+			out += line;
+		}
 		return out;
 	}
 }

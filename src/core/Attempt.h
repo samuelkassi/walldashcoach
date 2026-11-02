@@ -129,6 +129,10 @@ namespace walldash
 
 		float flipAngleDeg = kNotMeasured;
 		bool flipAngleUndefined = false;
+		// Dodge direction in the car frame, for drawing. Air roll changes it, so
+		// it can differ from the stick.
+		float flipDirForward = kNotMeasured;
+		float flipDirRight = kNotMeasured;
 		float travelAngleDeg = kNotMeasured;
 		float maxWallDistance = 0.f;
 		float heightAtStart = 0.f;

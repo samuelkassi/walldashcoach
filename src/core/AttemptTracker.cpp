@@ -138,6 +138,8 @@ namespace walldash
 		if (flipCaptured || dodgeFrame < 0 || sample.frame <= dodgeFrame)
 			return;
 		flipCaptured = true;
+		attempt.flipDirForward = sample.dodgeDir.x;
+		attempt.flipDirRight = sample.dodgeDir.y;
 
 		attempt.flipAngleUndefined = std::abs(rightAtDodge.z) < config.angleMinRightZ;
 		if (attempt.flipAngleUndefined)

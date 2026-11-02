@@ -3,6 +3,7 @@
 #include "Attempt.h"
 
 #include <string>
+#include <vector>
 
 namespace walldash
 {
@@ -33,5 +34,7 @@ namespace walldash
 		// Spam attempts are left out.
 		void Add(const AttemptResult& attempt);
 		std::string Summary() const;
+		// One line per bucket that has attempts. Normal speed flat walls always shows.
+		std::vector<std::string> Lines() const;
 	};
 }

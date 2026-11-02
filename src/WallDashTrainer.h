@@ -1,8 +1,10 @@
 #pragma once
 
 #include "bakkesmod/plugin/bakkesmodplugin.h"
+#include "bakkesmod/plugin/PluginSettingsWindow.h"
 #include "core/AttemptCsv.h"
 #include "core/AttemptTracker.h"
+#include "overlay/Overlay.h"
 #include "version.h"
 
 #include <chrono>
@@ -17,14 +19,25 @@ constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_M
 
 // Connects the game to the attempt logic in src/core: reads the car on every
 // physics tick, forwards the jump events, and reports each finished attempt to
-// the console and the attempt CSV.
-class WallDashTrainer : public BakkesMod::Plugin::BakkesModPlugin
+// the overlay, the attempt CSV and optionally the console.
+class WallDashTrainer : public BakkesMod::Plugin::BakkesModPlugin, public BakkesMod::Plugin::PluginSettingsWindow
 {
 public:
 	void onLoad() override;
 	void onUnload() override;
 
+	// The F2 settings window, in SettingsWindow.cpp.
+	void RenderSettings() override;
+	std::string GetPluginName() override;
+	void SetImGuiContext(uintptr_t ctx) override;
+
 private:
+	void SettingsCheckbox(const char* label, const std::string& cvarName);
+	void SettingsSlider(const char* label, const std::string& cvarName, float min, float max, const char* format);
+	void ResetSessionStats();
+	void ResetSettingsToDefaults();
+	void RenderOverlay(CanvasWrapper canvas);
+
 	// Deadzone and sensitivity values. They rarely change, so they are read
 	// once a second instead of on every tick.
 	struct CachedSettings
@@ -65,8 +78,14 @@ private:
 	walldash::AttemptTracker tracker{ [this](const walldash::AttemptResult& attempt) { OnAttemptFinished(attempt); } };
 	walldash::SessionStats stats;
 
+	Overlay overlay;
+	walldash::AttemptResult lastAttempt;
+	bool hasLastAttempt = false;
+	std::vector<std::string> resettableCvars;
+
 	std::shared_ptr<bool> debugLogEnabled = std::make_shared<bool>(false);
 	std::shared_ptr<bool> attemptLogEnabled = std::make_shared<bool>(true);
+	std::shared_ptr<bool> consoleLogEnabled = std::make_shared<bool>(false);
 
 	std::string sessionId;
 	int attemptCount = 0;
