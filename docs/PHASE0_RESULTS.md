@@ -102,7 +102,7 @@ Slow motion works because it halves the game time of the same hand movement. At 
 
 So the brief's "80 ms or less" looks like a sensible green band. The real target for your hands at 100% is to get from about 117 ms down toward 60 to 80 ms. Phase 3 should still set the bands from data, and 50% attempts should be logged with the game speed so they can be split out.
 
-Early lead, small sample: the 3 clear misses at 7 to 8 ticks had flip angles of 25 to 31 degrees, while 14 of the 16 makes were 33 degrees or more.
+Early lead, small sample: the 3 clear misses at 7 to 8 ticks had flip angles of 25 to 31 degrees, while 15 of the 16 makes were 33 degrees or more.
 
 ## Other findings for Phase 1
 
