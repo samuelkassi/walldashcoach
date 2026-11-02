@@ -71,7 +71,7 @@ walldash_export_share_data
 
 It writes copies of your attempt files to `<BakkesMod data folder>/walldashtrainer/share/`, with timestamps removed and session ids replaced by plain numbers. They still contain your inputs, car movement and controller deadzones. Sending them is entirely up to you. To share them or suggest tighter bands, message `samuelkassi` on Discord.
 
-**What happens to shared data:** please send the exported copies, not your original files. They are only used to review the default bands. I keep them until I have adjusted the defaults or for one month after you send them, whichever comes first, and then delete my copies.
+**What happens to shared data:** please send the exported copies, not your original files. The only way they are used is to inform the plugin's default values for a successful wall dash, such as timing, speed and flip angle. They will not be published. I keep them until I have adjusted the defaults or for one month after you send them, whichever comes first, and then delete my copies.
 
 ## Where the numbers come from
 
