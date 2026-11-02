@@ -35,9 +35,9 @@ Times are in game time, so at 50% speed the overlay also shows the real time you
 
 ## Options
 
-Everything can be changed in the settings window, including every band and each panel's position and size. Hold bands, surface detection and logging are under Advanced.
+Everything can be changed in the settings window, including every band and each panel's position and size. Make and miss rules, hold bands, surface detection and logging are under Advanced.
 
-**Chains** (off by default): shows your current and best chain and the speed lost between dashes. A chain continues while each dash is a make and the next jump comes within 1 second of landing. An optional counter under Advanced tracks how many chain dashes you have recorded per wall.
+**Chain dashes** (off by default): shows your current and best chain and the speed lost between dashes. A chain continues while each dash is a make and the next jump comes within 1 second of landing. An optional counter under Advanced tracks how many chain dashes you have recorded per wall.
 
 **Console commands** (F6):
 

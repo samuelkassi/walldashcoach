@@ -64,10 +64,10 @@ void WallDashTrainer::RenderSettings()
 		}
 	}
 
-	if (ImGui::CollapsingHeader("Chains"))
+	if (ImGui::CollapsingHeader("Chain dashes"))
 	{
-		ImGui::TextUnformatted("Chains are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
-		SettingsCheckbox("Show chains", "walldash_chains_on");
+		ImGui::TextUnformatted("Chain dashes are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
+		SettingsCheckbox("Show chain dashes", "walldash_chains_on");
 		SettingsSlider("Longest gap from reattaching to the next jump (s)", "walldash_chain_gap_s", 0.1f, 3.f, "%.2f");
 	}
 
@@ -105,18 +105,19 @@ void WallDashTrainer::RenderSettings()
 		SettingsSlider("Red below (uu/s)", "walldash_speed_red_below", 0.f, 600.f, "%.0f");
 	}
 
-	if (ImGui::CollapsingHeader("Make and miss rules"))
-	{
-		SettingsSlider("Attempt timeout (s)", "walldash_timeout_s", 0.25f, 3.f, "%.2f");
-		SettingsSlider("Ticks after first touch to reach the wheel count", "walldash_make_window_ticks", 1.f, 120.f, "%.0f");
-		SettingsSlider("Wheels on the wall for a make", "walldash_make_min_wheels", 1.f, 4.f, "%.0f");
-		SettingsSlider("How upright for a make", "walldash_upright_dot", 0.f, 1.f, "%.2f");
-		SettingsSlider("Peak speed window after reattaching (s)", "walldash_speed_window_s", 0.f, 1.f, "%.2f");
-		SettingsSlider("Jump presses that count as spam", "walldash_spam_presses", 2.f, 12.f, "%.0f");
-	}
-
 	if (ImGui::CollapsingHeader("Advanced"))
 	{
+		if (ImGui::TreeNode("Make and miss rules"))
+		{
+			SettingsSlider("Attempt timeout (s)", "walldash_timeout_s", 0.25f, 3.f, "%.2f");
+			SettingsSlider("Ticks after first touch to reach the wheel count", "walldash_make_window_ticks", 1.f, 120.f, "%.0f");
+			SettingsSlider("Wheels on the wall for a make", "walldash_make_min_wheels", 1.f, 4.f, "%.0f");
+			SettingsSlider("How upright for a make", "walldash_upright_dot", 0.f, 1.f, "%.2f");
+			SettingsSlider("Peak speed window after reattaching (s)", "walldash_speed_window_s", 0.f, 1.f, "%.2f");
+			SettingsSlider("Jump presses that count as spam", "walldash_spam_presses", 2.f, 12.f, "%.0f");
+			ImGui::TreePop();
+		}
+
 		if (ImGui::TreeNode("Hold bands"))
 		{
 			SettingsSlider("Green up to (ms)", "walldash_hold_green_ms", 0.f, 200.f, "%.0f");
