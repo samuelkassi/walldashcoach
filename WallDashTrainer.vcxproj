@@ -65,12 +65,21 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\WallDashTrainer.cpp" />
+    <ClCompile Include="src\core\AttemptTracker.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\core\AttemptCsv.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="logging.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="src\WallDashTrainer.h" />
+    <ClInclude Include="src\core\Attempt.h" />
+    <ClInclude Include="src\core\AttemptTracker.h" />
+    <ClInclude Include="src\core\AttemptCsv.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WallDashTrainer.rc" />

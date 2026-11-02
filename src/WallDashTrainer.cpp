@@ -11,9 +11,9 @@
 #include "bakkesmod/wrappers/GameObject/CarComponent/WheelWrapper.h"
 #include "bakkesmod/wrappers/SettingsWrapper.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <filesystem>
 #include <format>
 #include <sstream>
 
@@ -23,8 +23,14 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
 namespace
 {
+	using walldash::AttemptResult;
+	using walldash::Vec3;
+
 	constexpr int kWheelCount = 4;
 	constexpr float kUnrealRotToRad = 3.14159265358979f / 32768.f;
+	constexpr int kTicksPerSecond = 120;
+	constexpr int kGameSpeedWindowTicks = 120;
+	constexpr double kGameSpeedMaxWindowMs = 10000.0; // Longer than this means the game was paused.
 
 	struct CarAxes
 	{
@@ -33,8 +39,8 @@ namespace
 		Vector up;
 	};
 
-	// Unreal's rotator to axes conversion. The tick log lets us check it: when
-	// the car sits on a surface, up must match the wheel contact normal.
+	// Unreal's rotator to axes conversion. Phase 0 checked it against the
+	// wheel contact normals.
 	CarAxes AxesFromRotator(const Rotator& r)
 	{
 		const float sp = std::sin(r.Pitch * kUnrealRotToRad);
@@ -51,12 +57,17 @@ namespace
 		return axes;
 	}
 
+	Vec3 ToVec3(const Vector& v)
+	{
+		return { v.X, v.Y, v.Z };
+	}
+
 	void AppendVector(std::ostringstream& out, const Vector& v)
 	{
 		out << ',' << v.X << ',' << v.Y << ',' << v.Z;
 	}
 
-	std::string BuildHeader()
+	std::string DebugLogHeader()
 	{
 		std::ostringstream h;
 		h << "kind,physics_frame,calls_this_frame,time_s,"
@@ -77,26 +88,49 @@ namespace
 			"pri_dodge_threshold,component_dodge_threshold";
 		return h.str();
 	}
+
+	std::chrono::local_time<std::chrono::seconds> LocalNow()
+	{
+		const auto zoned = std::chrono::zoned_time(std::chrono::current_zone(), std::chrono::system_clock::now());
+		return std::chrono::floor<std::chrono::seconds>(zoned.get_local_time());
+	}
+
+	std::string DescribeAttempt(const AttemptResult& a)
+	{
+		std::string line = std::format("WallDash: {} {} {}", a.make ? "MAKE" : "MISS", walldash::ToString(a.wallSide), walldash::ToString(a.surface));
+		if (a.gameSpeed < 0.95f || a.gameSpeed > 1.05f)
+			line += std::format(" at {:.0f}% speed", a.gameSpeed * 100.f);
+		if (a.spamInput)
+			line += std::format(" [spam_input, {} presses, left out of stats]", a.jumpPresses);
+		if (!a.make)
+			line += std::format(" | {}", a.diagnosisText);
+
+		if (a.pressToPressTicks >= 0)
+			line += std::format(" | press to press {:.0f} ms ({} ticks)", a.PressToPressMs(), a.pressToPressTicks);
+		if (a.holdTicks >= 0)
+			line += std::format(", hold {:.0f} ms", a.HoldMs());
+		if (a.flipAngleUndefined)
+			line += ", flip angle undefined";
+		else if (!std::isnan(a.flipAngleDeg))
+			line += std::format(", flip {:.0f} deg", a.flipAngleDeg);
+		if (a.make)
+			line += std::format(", speed {:+.0f} uu/s ({:.0f} to {:.0f})", a.speedGain, a.speedFirstPress, a.speedPeak);
+		return line;
+	}
 }
 
 void WallDashTrainer::onLoad()
 {
 	_globalCvarManager = cvarManager;
 
-	cvarManager->registerCvar("walldash_debug_log", "0", "Write the per-tick debug log (Phases 0 and 3)", true, true, 0, true, 1, false)
-		.bindTo(debugLogEnabled);
-	cvarManager->getCvar("walldash_debug_log").addOnValueChanged(
-		[this](std::string, CVarWrapper cvar)
-		{
-			if (cvar.getBoolValue())
-				OpenLog();
-			else
-				CloseLog();
-		});
+	sessionId = std::format("{:%Y%m%d_%H%M%S}", LocalNow());
+	speedWindowStart = std::chrono::steady_clock::now();
+
+	RegisterCvars();
 
 	cvarManager->registerNotifier("walldash_debug_status",
 		[this](std::vector<std::string>) { PrintStatus(); },
-		"Print the log path, rows written and how many times each event fired", PERMISSION_ALL);
+		"Print the session stats, log paths and how many times each event fired", PERMISSION_ALL);
 
 	gameWrapper->HookEventWithCaller<CarWrapper>(
 		"Function TAGame.Car_TA.SetVehicleInput",
@@ -110,17 +144,79 @@ void WallDashTrainer::onLoad()
 	HookCarEvent("Function TAGame.Car_TA.OnJumpReleased", "jump_released");
 
 	HookComponentEvent("Function CarComponent_Jump_TA.Active.BeginState", "jump_begin");
-	HookComponentEvent("Function CarComponent_Jump_TA.Active.EndState", "jump_end");
 	HookComponentEvent("Function CarComponent_DoubleJump_TA.Active.BeginState", "double_jump_begin");
 	HookComponentEvent("Function CarComponent_Dodge_TA.Active.BeginState", "dodge_begin");
-	HookComponentEvent("Function CarComponent_Dodge_TA.Active.EndState", "dodge_end");
 
-	LOG("WallDash Trainer {} loaded. Set walldash_debug_log 1 to start logging.", plugin_version);
+	LOG("WallDash Trainer {} loaded. Attempts print here and save to the data folder.", plugin_version);
 }
 
 void WallDashTrainer::onUnload()
 {
-	CloseLog();
+	CloseDebugLog();
+}
+
+void WallDashTrainer::RegisterConfigCvar(const std::string& name, const std::string& defaultValue, const std::string& description,
+	std::function<void(walldash::AttemptConfig&, float)> apply)
+{
+	CVarWrapper cvar = cvarManager->registerCvar(name, defaultValue, description);
+	const auto update = [this, apply](float value)
+		{
+			walldash::AttemptConfig config = tracker.GetConfig();
+			apply(config, value);
+			tracker.SetConfig(config);
+		};
+	cvar.addOnValueChanged([update](std::string, CVarWrapper changed) { update(changed.getFloatValue()); });
+	update(cvar.getFloatValue());
+}
+
+void WallDashTrainer::RegisterCvars()
+{
+	using walldash::AttemptConfig;
+
+	const auto secondsToTicks = [](float seconds) { return static_cast<int>(std::lround(seconds * kTicksPerSecond)); };
+
+	RegisterConfigCvar("walldash_timeout_s", "1.0", "Seconds after the first jump before an attempt times out",
+		[secondsToTicks](AttemptConfig& c, float v) { c.timeoutTicks = secondsToTicks(v); });
+	RegisterConfigCvar("walldash_make_window_ticks", "30", "Ticks after first touching the wall to reach the wheel count for a make",
+		[](AttemptConfig& c, float v) { c.makeWindowTicks = static_cast<int>(v); });
+	RegisterConfigCvar("walldash_make_min_wheels", "3", "Wheels that must be on the wall for a make",
+		[](AttemptConfig& c, float v) { c.makeMinWheels = static_cast<int>(v); });
+	RegisterConfigCvar("walldash_upright_dot", "0.9", "How upright the car must be on the wall for a make (car up dot wall normal)",
+		[](AttemptConfig& c, float v) { c.uprightDot = v; });
+	RegisterConfigCvar("walldash_speed_window_s", "0.15", "Seconds after reattaching to look for peak speed",
+		[secondsToTicks](AttemptConfig& c, float v) { c.speedWindowTicks = secondsToTicks(v); });
+	RegisterConfigCvar("walldash_late_press_ms", "95", "Press to press time above which a miss is called too late",
+		[](AttemptConfig& c, float v) { c.latePressMs = v; });
+	RegisterConfigCvar("walldash_hold_max_ms", "0", "First jump hold above which a miss is called held too long. 0 turns the rule off",
+		[](AttemptConfig& c, float v) { c.holdMaxMs = v; });
+	RegisterConfigCvar("walldash_spam_presses", "4", "Jump presses in one attempt that mark it as spam_input",
+		[](AttemptConfig& c, float v) { c.spamPresses = static_cast<int>(v); });
+	RegisterConfigCvar("walldash_curve_up_z", "0.1", "Vertical part of the wall normal above which a surface counts as a curve",
+		[](AttemptConfig& c, float v) { c.curveUpZ = v; });
+	RegisterConfigCvar("walldash_corner_axis", "0.98", "How closely the normal must match an arena axis for a flat wall, below this it is a corner",
+		[](AttemptConfig& c, float v) { c.cornerAxis = v; });
+	RegisterConfigCvar("walldash_floor_up_z", "0.98", "Car up height at or above which a jump counts as from the floor",
+		[](AttemptConfig& c, float v) { c.floorUpZ = v; });
+	RegisterConfigCvar("walldash_ceiling_up_z", "-0.7", "Car up height at or below which a jump counts as from the ceiling",
+		[](AttemptConfig& c, float v) { c.ceilingUpZ = v; });
+	RegisterConfigCvar("walldash_floor_height", "60", "Height below which a wheel touch counts as landing on the floor",
+		[](AttemptConfig& c, float v) { c.floorHeight = v; });
+	RegisterConfigCvar("walldash_angle_min_right_z", "0.2", "Below this the car is too close to straight up or down the wall for a flip angle sign",
+		[](AttemptConfig& c, float v) { c.angleMinRightZ = v; });
+
+	cvarManager->registerCvar("walldash_attempt_log", "1", "Write one CSV row per attempt", true, true, 0, true, 1)
+		.bindTo(attemptLogEnabled);
+
+	cvarManager->registerCvar("walldash_debug_log", "0", "Write the per-tick debug log (Phases 0 and 3)", true, true, 0, true, 1, false)
+		.bindTo(debugLogEnabled);
+	cvarManager->getCvar("walldash_debug_log").addOnValueChanged(
+		[this](std::string, CVarWrapper cvar)
+		{
+			if (cvar.getBoolValue())
+				OpenDebugLog();
+			else
+				CloseDebugLog();
+		});
 }
 
 void WallDashTrainer::HookCarEvent(const std::string& eventName, const std::string& kind)
@@ -161,6 +257,49 @@ float WallDashTrainer::GetWorldTime()
 	return world.GetTimeSeconds();
 }
 
+void WallDashTrainer::UpdateGameSpeed()
+{
+	if (++speedWindowTicks < kGameSpeedWindowTicks)
+		return;
+
+	const auto now = std::chrono::steady_clock::now();
+	const double realMs = std::chrono::duration<double, std::milli>(now - speedWindowStart).count();
+	if (realMs > 0.0 && realMs < kGameSpeedMaxWindowMs)
+	{
+		const double measured = speedWindowTicks * walldash::kMsPerTick / realMs;
+		gameSpeed = std::clamp(static_cast<float>(std::round(measured * 20.0) / 20.0), 0.05f, 2.f);
+	}
+	speedWindowTicks = 0;
+	speedWindowStart = now;
+}
+
+walldash::TickSample WallDashTrainer::BuildSample(CarWrapper& car, const ControllerInput& input, int frame)
+{
+	const CarAxes axes = AxesFromRotator(car.GetRotation());
+
+	walldash::TickSample s;
+	s.frame = frame;
+	s.gameSpeed = gameSpeed;
+	s.throttle = input.Throttle;
+	s.pitch = input.Pitch;
+	s.yaw = input.Yaw;
+	s.roll = input.Roll;
+	s.powerslide = input.Handbrake != 0;
+	s.boost = input.HoldingBoost != 0 || input.ActivateBoost != 0;
+	s.pos = ToVec3(car.GetLocation());
+	s.vel = ToVec3(car.GetVelocity());
+	s.right = ToVec3(axes.right);
+	s.up = ToVec3(axes.up);
+	s.wheelContacts = car.GetNumWheelWorldContacts();
+	s.isOnWall = car.IsOnWall();
+	DodgeComponentWrapper dodge = car.GetDodgeComponent();
+	if (!dodge.IsNull())
+		s.dodgeDir = ToVec3(dodge.GetDodgeDirection());
+	s.dodgeDeadzone = settings.gamepadDodgeThreshold;
+	s.controllerDeadzone = settings.gamepadControllerDeadzone;
+	return s;
+}
+
 void WallDashTrainer::OnVehicleInput(CarWrapper car, const ControllerInput& input)
 {
 	if (!IsLocalCarInFreeplay(car))
@@ -171,9 +310,15 @@ void WallDashTrainer::OnVehicleInput(CarWrapper car, const ControllerInput& inpu
 	lastPhysicsFrame = frame;
 	eventCounts["tick"]++;
 
-	if (!*debugLogEnabled)
-		return;
-	WriteRow("tick", car, input, GetWorldTime());
+	const float now = GetWorldTime();
+	RefreshSettings(car, now);
+	UpdateGameSpeed();
+
+	if (callsThisFrame == 1)
+		tracker.OnTick(BuildSample(car, input, frame));
+
+	if (*debugLogEnabled)
+		WriteDebugRow("tick", car, input, now);
 }
 
 void WallDashTrainer::OnCarEvent(CarWrapper car, const std::string& kind)
@@ -182,9 +327,87 @@ void WallDashTrainer::OnCarEvent(CarWrapper car, const std::string& kind)
 		return;
 	eventCounts[kind]++;
 
-	if (!*debugLogEnabled)
+	ForwardEvent(kind);
+
+	if (*debugLogEnabled)
+		WriteDebugRow(kind, car, car.GetInput(), GetWorldTime());
+}
+
+void WallDashTrainer::ForwardEvent(const std::string& kind)
+{
+	if (kind == "jump_pressed") tracker.OnJumpPressed();
+	else if (kind == "jump_released") tracker.OnJumpReleased();
+	else if (kind == "jump_begin") tracker.OnFirstJumpBegin();
+	else if (kind == "double_jump_begin") tracker.OnDoubleJumpBegin();
+	else if (kind == "dodge_begin") tracker.OnDodgeBegin();
+}
+
+void WallDashTrainer::OnAttemptFinished(const AttemptResult& attempt)
+{
+	attemptCount++;
+	stats.Add(attempt);
+	LOG("{}", DescribeAttempt(attempt));
+	LOG("WallDash: session: {}", stats.Summary());
+
+	if (*attemptLogEnabled)
+		WriteAttemptRow(attempt);
+}
+
+std::filesystem::path WallDashTrainer::AttemptFilePath()
+{
+	namespace fs = std::filesystem;
+
+	const std::string date = std::format("{:%Y-%m-%d}", std::chrono::floor<std::chrono::days>(LocalNow()));
+	if (date == attemptFileDate && !attemptFile.empty())
+		return attemptFile;
+
+	const fs::path folder = gameWrapper->GetDataFolder() / "walldashtrainer";
+	std::error_code error;
+	fs::create_directories(folder, error);
+	if (error)
+	{
+		LOG("WallDash Trainer: could not create the data folder: {}", error.message());
+		return {};
+	}
+
+	// A file written with different columns is left alone, so one CSV never
+	// holds two layouts. This matters when a new version adds a column.
+	const std::string header = walldash::AttemptCsvHeader();
+	fs::path path = folder / std::format("attempts_{}.csv", date);
+	for (int suffix = 2; fs::exists(path, error); suffix++)
+	{
+		std::ifstream existing(path);
+		std::string firstLine;
+		std::getline(existing, firstLine);
+		if (firstLine == header)
+			break;
+		path = folder / std::format("attempts_{}_{}.csv", date, suffix);
+	}
+
+	attemptFileDate = date;
+	attemptFile = path;
+	return attemptFile;
+}
+
+void WallDashTrainer::WriteAttemptRow(const AttemptResult& attempt)
+{
+	const std::filesystem::path path = AttemptFilePath();
+	if (path.empty())
 		return;
-	WriteRow(kind, car, car.GetInput(), GetWorldTime());
+
+	std::error_code error;
+	const bool isNew = !std::filesystem::exists(path, error);
+	std::ofstream file(path, std::ios::app);
+	if (!file.is_open())
+	{
+		LOG("WallDash Trainer: could not write to {}", path.string());
+		return;
+	}
+	if (isNew)
+		file << walldash::AttemptCsvHeader() << '\n';
+
+	const std::string timestamp = std::format("{:%Y-%m-%dT%H:%M:%S}", LocalNow());
+	file << walldash::AttemptCsvRow(attempt, timestamp, sessionId, attemptCount) << '\n';
 }
 
 void WallDashTrainer::RefreshSettings(CarWrapper& car, float now)
@@ -206,12 +429,10 @@ void WallDashTrainer::RefreshSettings(CarWrapper& car, float now)
 	settings.componentDodgeThreshold = dodge.IsNull() ? -1.f : dodge.GetDodgeInputThreshold();
 }
 
-void WallDashTrainer::WriteRow(const std::string& kind, CarWrapper& car, const ControllerInput& input, float now)
+void WallDashTrainer::WriteDebugRow(const std::string& kind, CarWrapper& car, const ControllerInput& input, float now)
 {
-	if (!logFile.is_open() && !OpenLog())
+	if (!debugLogFile.is_open() && !OpenDebugLog())
 		return;
-
-	RefreshSettings(car, now);
 
 	std::ostringstream row;
 	row << kind << ',' << gameWrapper->GetEngine().GetPhysicsFrame() << ',' << callsThisFrame << ','
@@ -245,7 +466,6 @@ void WallDashTrainer::WriteRow(const std::string& kind, CarWrapper& car, const C
 	AppendVector(row, dodge.IsNull() ? Vector(0.f) : dodge.GetDodgeDirection());
 	AppendVector(row, dodge.IsNull() ? Vector(0.f) : dodge.GetDodgeTorque());
 
-	// Wheels are read directly so a short or missing array still gives the same columns.
 	ArrayWrapper<WheelWrapper> wheels = car.GetVehicleSim().GetWheels();
 	const int wheelCount = wheels.Count();
 	for (int i = 0; i < kWheelCount; i++)
@@ -265,19 +485,19 @@ void WallDashTrainer::WriteRow(const std::string& kind, CarWrapper& car, const C
 	row << ',' << settings.gamepadDodgeThreshold << ',' << settings.gamepadControllerDeadzone << ',' << settings.gamepadAirControlSensitivity
 		<< ',' << settings.priDodgeThreshold << ',' << settings.componentDodgeThreshold << '\n';
 
-	logFile << row.str();
-	rowsWritten++;
+	debugLogFile << row.str();
+	debugRowsWritten++;
 
 	if (now >= nextFlushTime || now < nextFlushTime - 1.f)
 	{
-		logFile.flush();
+		debugLogFile.flush();
 		nextFlushTime = now + 1.f;
 	}
 }
 
-bool WallDashTrainer::OpenLog()
+bool WallDashTrainer::OpenDebugLog()
 {
-	if (logFile.is_open())
+	if (debugLogFile.is_open())
 		return true;
 
 	namespace fs = std::filesystem;
@@ -291,39 +511,39 @@ bool WallDashTrainer::OpenLog()
 		return false;
 	}
 
-	const auto localNow = std::chrono::zoned_time(std::chrono::current_zone(), std::chrono::system_clock::now());
-	const std::string stamp = std::format("{:%Y-%m-%d_%H%M%S}", std::chrono::floor<std::chrono::seconds>(localNow.get_local_time()));
-	const fs::path path = folder / ("debug_ticks_" + stamp + ".csv");
-
-	logFile.open(path, std::ios::out | std::ios::trunc);
-	if (!logFile.is_open())
+	const fs::path path = folder / std::format("debug_ticks_{:%Y-%m-%d_%H%M%S}.csv", LocalNow());
+	debugLogFile.open(path, std::ios::out | std::ios::trunc);
+	if (!debugLogFile.is_open())
 	{
 		LOG("WallDash Trainer: could not open the log file: {}", path.string());
 		*debugLogEnabled = false;
 		return false;
 	}
 
-	logPath = path.string();
-	rowsWritten = 0;
+	debugLogPath = path.string();
+	debugRowsWritten = 0;
 	nextFlushTime = -1.f;
-	logFile << BuildHeader() << '\n';
-	logFile.flush();
-	LOG("WallDash Trainer: logging to {}", logPath);
+	debugLogFile << DebugLogHeader() << '\n';
+	debugLogFile.flush();
+	LOG("WallDash Trainer: logging to {}", debugLogPath);
 	return true;
 }
 
-void WallDashTrainer::CloseLog()
+void WallDashTrainer::CloseDebugLog()
 {
-	if (!logFile.is_open())
+	if (!debugLogFile.is_open())
 		return;
-	logFile.flush();
-	logFile.close();
-	LOG("WallDash Trainer: log closed, {} rows in {}", rowsWritten, logPath);
+	debugLogFile.flush();
+	debugLogFile.close();
+	LOG("WallDash Trainer: log closed, {} rows in {}", debugRowsWritten, debugLogPath);
 }
 
 void WallDashTrainer::PrintStatus()
 {
-	LOG("WallDash Trainer: logging {}, file: {}, rows: {}", *debugLogEnabled ? "on" : "off", logPath.empty() ? "none" : logPath, rowsWritten);
+	LOG("WallDash Trainer: session {}, {} attempts, game speed {:.2f}", sessionId, attemptCount, gameSpeed);
+	LOG("WallDash Trainer: {}", stats.Summary());
+	LOG("WallDash Trainer: attempt file: {}", attemptFile.empty() ? "none yet" : attemptFile.string());
+	LOG("WallDash Trainer: debug log {}, file: {}, rows: {}", *debugLogEnabled ? "on" : "off", debugLogPath.empty() ? "none" : debugLogPath, debugRowsWritten);
 	LOG("WallDash Trainer: SetVehicleInput calls on the latest physics frame: {}", callsThisFrame);
 	for (const auto& [kind, count] : eventCounts)
 	{

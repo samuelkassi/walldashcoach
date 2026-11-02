@@ -1,17 +1,23 @@
 #pragma once
 
 #include "bakkesmod/plugin/bakkesmodplugin.h"
+#include "core/AttemptCsv.h"
+#include "core/AttemptTracker.h"
 #include "version.h"
 
+#include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <string>
 
 constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD);
 
-// Phase 0 spike: hooks the jump, dodge and input events and writes everything
-// to a per-tick CSV. It makes no decisions about attempts. That is Phase 1.
+// Connects the game to the attempt logic in src/core: reads the car on every
+// physics tick, forwards the jump events, and reports each finished attempt to
+// the console and the attempt CSV.
 class WallDashTrainer : public BakkesMod::Plugin::BakkesModPlugin
 {
 public:
@@ -31,32 +37,56 @@ private:
 		float nextRefreshTime = -1.f;
 	};
 
+	void RegisterCvars();
+	void RegisterConfigCvar(const std::string& name, const std::string& defaultValue, const std::string& description,
+		std::function<void(walldash::AttemptConfig&, float)> apply);
+
 	void HookCarEvent(const std::string& eventName, const std::string& kind);
 	void HookComponentEvent(const std::string& eventName, const std::string& kind);
 
 	void OnVehicleInput(CarWrapper car, const ControllerInput& input);
 	void OnCarEvent(CarWrapper car, const std::string& kind);
+	void ForwardEvent(const std::string& kind);
+	void OnAttemptFinished(const walldash::AttemptResult& attempt);
 
 	bool IsLocalCarInFreeplay(CarWrapper& car);
 	float GetWorldTime();
 	void RefreshSettings(CarWrapper& car, float now);
-	void WriteRow(const std::string& kind, CarWrapper& car, const ControllerInput& input, float now);
+	walldash::TickSample BuildSample(CarWrapper& car, const ControllerInput& input, int frame);
+	void UpdateGameSpeed();
 
-	bool OpenLog();
-	void CloseLog();
+	void WriteDebugRow(const std::string& kind, CarWrapper& car, const ControllerInput& input, float now);
+	bool OpenDebugLog();
+	void CloseDebugLog();
+	void WriteAttemptRow(const walldash::AttemptResult& attempt);
+	std::filesystem::path AttemptFilePath();
 	void PrintStatus();
 
-	std::shared_ptr<bool> debugLogEnabled = std::make_shared<bool>(false);
+	walldash::AttemptTracker tracker{ [this](const walldash::AttemptResult& attempt) { OnAttemptFinished(attempt); } };
+	walldash::SessionStats stats;
 
-	std::ofstream logFile;
-	std::string logPath;
-	uint64_t rowsWritten = 0;
+	std::shared_ptr<bool> debugLogEnabled = std::make_shared<bool>(false);
+	std::shared_ptr<bool> attemptLogEnabled = std::make_shared<bool>(true);
+
+	std::string sessionId;
+	int attemptCount = 0;
+	std::string attemptFileDate;
+	std::filesystem::path attemptFile;
+
+	std::ofstream debugLogFile;
+	std::string debugLogPath;
+	uint64_t debugRowsWritten = 0;
 	float nextFlushTime = -1.f;
 
 	// How many SetVehicleInput calls landed on the same physics frame. Phase 0
-	// needs this to find out whether freeplay really gives one call per tick.
+	// measured exactly one, and this column keeps checking it.
 	int lastPhysicsFrame = -1;
 	int callsThisFrame = 0;
+
+	// Game speed comes from real time per tick, so it works however it was set.
+	float gameSpeed = 1.f;
+	int speedWindowTicks = 0;
+	std::chrono::steady_clock::time_point speedWindowStart;
 
 	CachedSettings settings;
 
