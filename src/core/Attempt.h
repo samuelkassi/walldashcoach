@@ -68,6 +68,21 @@ namespace walldash
 		Unclassified
 	};
 
+	// Limits are whole milliseconds, and a tick is 8.33 ms, so comparisons allow
+	// this much slack: 13 ticks is 108.33 ms and still counts as "up to 108".
+	constexpr float kBandSlackMs = 0.5f;
+
+	// Faster starts forgive later presses, so the press to press limits depend on
+	// speed at the first press. See docs/CALIBRATION.md.
+	constexpr int kPressBandCount = 5;
+	constexpr float kPressBandSpeedLimits[kPressBandCount - 1] = { 1300.f, 1500.f, 1700.f, 1900.f };
+
+	struct PressBand
+	{
+		float greenMs;
+		float yellowMs; // Above this is too late. Equal to green means no yellow zone.
+	};
+
 	// Every value is configurable through a cvar. See WallDashTrainer::RegisterCvars.
 	struct AttemptConfig
 	{
@@ -76,8 +91,15 @@ namespace walldash
 		int makeMinWheels = 3;
 		float uprightDot = 0.9f;
 		int speedWindowTicks = 18;
-		float latePressMs = 95.f;
-		float holdMaxMs = 0.f; // 0 turns the rule off until Phase 3 provides a band.
+		PressBand pressBands[kPressBandCount] = {
+			{ 100.f, 117.f },
+			{ 108.f, 108.f },
+			{ 108.f, 117.f },
+			{ 117.f, 125.f },
+			{ 125.f, 133.f },
+		};
+		float holdGreenMs = 50.f;
+		float holdMaxMs = 75.f; // Above this is red and a miss reason. 0 turns the miss reason off.
 		int spamPresses = 4;
 		float curveUpZ = 0.1f;
 		float cornerAxis = 0.98f;
@@ -88,10 +110,21 @@ namespace walldash
 
 		// Flip angle bands in degrees toward the ceiling. Inside green is best,
 		// inside yellow is acceptable, and outside yellow is a miss reason.
-		float flipYellowMin = 40.f;
+		float flipYellowMin = 45.f;
 		float flipGreenMin = 50.f;
-		float flipGreenMax = 80.f;
-		float flipYellowMax = 90.f;
+		float flipGreenMax = 70.f;
+		float flipYellowMax = 85.f;
+
+		// Press to press limits for a given speed at the first press.
+		const PressBand& PressBandFor(float speed) const
+		{
+			for (int i = 0; i < kPressBandCount - 1; i++)
+			{
+				if (speed < kPressBandSpeedLimits[i])
+					return pressBands[i];
+			}
+			return pressBands[kPressBandCount - 1];
+		}
 	};
 
 	struct StickPoint

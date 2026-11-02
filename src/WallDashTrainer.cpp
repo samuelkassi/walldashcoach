@@ -132,6 +132,12 @@ void WallDashTrainer::onLoad()
 		[this](std::vector<std::string>) { ResetSessionStats(); },
 		"Clear the session stats and the last result", PERMISSION_ALL);
 
+	// Deliberately command only and not in the settings window. It writes files
+	// on this PC and sends nothing.
+	cvarManager->registerNotifier("walldash_export_share_data",
+		[this](std::vector<std::string>) { ExportShareData(); },
+		"Write an anonymised copy of your attempt files, for you to share if you choose. Nothing is sent", PERMISSION_ALL);
+
 	cvarManager->registerNotifier("walldash_debug_status",
 		[this](std::vector<std::string>) { PrintStatus(); },
 		"Print the session stats, log paths and how many times each event fired", PERMISSION_ALL);
@@ -160,6 +166,49 @@ void WallDashTrainer::onUnload()
 {
 	gameWrapper->UnregisterDrawables();
 	CloseDebugLog();
+}
+
+void WallDashTrainer::ExportShareData()
+{
+	namespace fs = std::filesystem;
+	const fs::path folder = gameWrapper->GetDataFolder() / "walldashtrainer";
+	const fs::path shareFolder = folder / "share";
+
+	std::error_code error;
+	std::vector<fs::path> sources;
+	for (const fs::directory_entry& entry : fs::directory_iterator(folder, error))
+	{
+		const std::string name = entry.path().filename().string();
+		if (name.starts_with("attempts_") && entry.path().extension() == ".csv")
+			sources.push_back(entry.path());
+	}
+	if (error || sources.empty())
+	{
+		LOG("WallDash Trainer: no attempt files to export yet.");
+		return;
+	}
+	std::sort(sources.begin(), sources.end());
+
+	fs::create_directories(shareFolder, error);
+	if (error)
+	{
+		LOG("WallDash Trainer: could not create the share folder: {}", error.message());
+		return;
+	}
+
+	std::map<std::string, int> sessions;
+	int rows = 0;
+	int fileNumber = 0;
+	for (const fs::path& source : sources)
+	{
+		std::ifstream in(source);
+		std::ofstream out(shareFolder / std::format("attempts_share_{}.csv", ++fileNumber), std::ios::trunc);
+		if (in.is_open() && out.is_open())
+			rows += walldash::AnonymizeAttemptCsv(in, out, sessions);
+	}
+
+	LOG("WallDash Trainer: wrote {} attempts, without timestamps, to {}", rows, shareFolder.string());
+	LOG("WallDash Trainer: nothing has been sent. Sharing these files is up to you, and the README explains how.");
 }
 
 void WallDashTrainer::RenderOverlay(CanvasWrapper canvas)
@@ -223,9 +272,18 @@ void WallDashTrainer::RegisterCvars()
 		[](AttemptConfig& c, float v) { c.uprightDot = v; });
 	RegisterConfigCvar("walldash_speed_window_s", "0.15", "Seconds after reattaching to look for peak speed",
 		[secondsToTicks](AttemptConfig& c, float v) { c.speedWindowTicks = secondsToTicks(v); });
-	RegisterConfigCvar("walldash_late_press_ms", "95", "Press to press time above which a miss is called too late",
-		[](AttemptConfig& c, float v) { c.latePressMs = v; });
-	RegisterConfigCvar("walldash_hold_max_ms", "0", "First jump hold above which a miss is called held too long. 0 turns the rule off",
+	const AttemptConfig defaults;
+	for (int i = 0; i < walldash::kPressBandCount; i++)
+	{
+		const std::string row = std::to_string(i + 1);
+		RegisterConfigCvar("walldash_press_green_ms_" + row, std::format("{:.0f}", defaults.pressBands[i].greenMs), "Press to press green limit for speed band " + row,
+			[i](AttemptConfig& c, float v) { c.pressBands[i].greenMs = v; });
+		RegisterConfigCvar("walldash_press_yellow_ms_" + row, std::format("{:.0f}", defaults.pressBands[i].yellowMs), "Press to press yellow limit for speed band " + row + ", above this is too late",
+			[i](AttemptConfig& c, float v) { c.pressBands[i].yellowMs = v; });
+	}
+	RegisterConfigCvar("walldash_hold_green_ms", "50", "First jump hold up to this is in the green band",
+		[](AttemptConfig& c, float v) { c.holdGreenMs = v; });
+	RegisterConfigCvar("walldash_hold_max_ms", "75", "First jump hold above this is red and a miss reason. 0 turns the miss reason off",
 		[](AttemptConfig& c, float v) { c.holdMaxMs = v; });
 	RegisterConfigCvar("walldash_spam_presses", "4", "Jump presses in one attempt that mark it as spam_input",
 		[](AttemptConfig& c, float v) { c.spamPresses = static_cast<int>(v); });
@@ -242,13 +300,13 @@ void WallDashTrainer::RegisterCvars()
 	RegisterConfigCvar("walldash_angle_min_right_z", "0.2", "Below this the car is too close to straight up or down the wall for a flip angle sign",
 		[](AttemptConfig& c, float v) { c.angleMinRightZ = v; });
 
-	RegisterConfigCvar("walldash_flip_yellow_min", "40", "Flip angle below this is too forward, a miss reason",
+	RegisterConfigCvar("walldash_flip_yellow_min", "45", "Flip angle below this is too forward, a miss reason",
 		[](AttemptConfig& c, float v) { c.flipYellowMin = v; });
 	RegisterConfigCvar("walldash_flip_green_min", "50", "Flip angle from here is in the green band",
 		[](AttemptConfig& c, float v) { c.flipGreenMin = v; });
-	RegisterConfigCvar("walldash_flip_green_max", "80", "Flip angle up to here is in the green band",
+	RegisterConfigCvar("walldash_flip_green_max", "70", "Flip angle up to here is in the green band",
 		[](AttemptConfig& c, float v) { c.flipGreenMax = v; });
-	RegisterConfigCvar("walldash_flip_yellow_max", "90", "Flip angle above this is too sideways, a miss reason",
+	RegisterConfigCvar("walldash_flip_yellow_max", "85", "Flip angle above this is too sideways, a miss reason",
 		[](AttemptConfig& c, float v) { c.flipYellowMax = v; });
 
 	overlay.RegisterCvars(cvarManager);

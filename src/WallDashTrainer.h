@@ -36,6 +36,7 @@ private:
 	void SettingsSlider(const char* label, const std::string& cvarName, float min, float max, const char* format);
 	void ResetSessionStats();
 	void ResetSettingsToDefaults();
+	void ExportShareData();
 	void RenderOverlay(CanvasWrapper canvas);
 
 	// Deadzone and sensitivity values. They rarely change, so they are read

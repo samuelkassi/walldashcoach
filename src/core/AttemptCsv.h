@@ -2,6 +2,8 @@
 
 #include "Attempt.h"
 
+#include <iosfwd>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -11,6 +13,11 @@ namespace walldash
 	// not measured is left blank, which pandas reads as NaN.
 	std::string AttemptCsvHeader();
 	std::string AttemptCsvRow(const AttemptResult& attempt, const std::string& timestamp, const std::string& sessionId, int attemptId);
+
+	// Copies an attempt CSV with the timestamp column removed and session ids,
+	// which contain the date and time, replaced by plain numbers. Pass the same
+	// map for every file so sessions stay numbered in order. Returns rows written.
+	int AnonymizeAttemptCsv(std::istream& in, std::ostream& out, std::map<std::string, int>& sessions);
 
 	// Make counts split the way the overlay shows them: flat walls apart from
 	// curves and corners, normal game speed apart from slowed down, and optionally

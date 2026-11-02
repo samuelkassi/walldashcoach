@@ -23,7 +23,21 @@ Attempts at normal speed and slowed-down attempts are counted separately, as are
 | `walldash_attempt_log 0` | Stops writing the attempt CSV. On by default. |
 | `walldash_debug_log 1` | Starts a per-tick debug log. Set to `0` to stop. |
 
-The second press can't work until the wheels leave the wall, about 7 ticks (58 ms) after the first jump on a flat wall, so the press to press bar has a too-early zone as well as a too-late one.
+The second press can't work until the wheels leave the wall, about 7 ticks (58 ms) after the first jump on a flat wall, so the press to press bar has a too-early zone as well as a too-late one. The too-late limit depends on your speed at the first press, because faster starts are more forgiving.
+
+## Where the numbers come from
+
+The default bands come from about 1,200 recorded dashes by one player, and aim at making the dash rather than the fastest possible press. See [the calibration write-up](docs/CALIBRATION.md) for what drives makes, and [`data/`](data/README.md) for the data. Stronger players will likely want tighter limits, which the settings window allows.
+
+## Sharing your data
+
+This is optional, off unless you ask for it, and not in the settings window. If you would like to share your attempts or suggest tighter bands, run this in the console (F6):
+
+```
+walldash_export_share_data
+```
+
+It writes copies of your attempt files to `<BakkesMod data folder>/walldashtrainer/share/`, with timestamps removed and session ids replaced by plain numbers. **The plugin sends nothing anywhere.** The files stay on your PC unless you choose to send them yourself. They still contain your inputs, car movement and controller deadzones. Contact details for sending them will be added here before release.
 
 ## Building from source
 
@@ -51,7 +65,7 @@ build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect
 | 0 | Prove the events and measurements work | Done, see [results](docs/PHASE0_RESULTS.md) |
 | 1 | Detect attempts, judge make or miss, write the attempt CSV | Done, see [results](docs/PHASE1_RESULTS.md) |
 | 2 | On-screen overlay and settings window | Done, see [results](docs/PHASE2_RESULTS.md) |
-| 3 | Find what drives makes from a large sample, then set the bands from it | Next |
+| 3 | Find what drives makes from a large sample, then set the bands from it | In progress, see [calibration](docs/CALIBRATION.md) |
 | 4 | Optional chains and reset-to-wall | Planned |
 | 5 | Prepare for release on bakkesplugins.com | Planned |
 

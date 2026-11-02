@@ -108,13 +108,11 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 {
 	cvarManager->registerCvar("walldash_overlay_on", "1", "Show the overlay in freeplay", true, true, 0, true, 1).bindTo(enabled);
 	cvarManager->registerCvar("walldash_press_early_ms", "58", "Press to press below this is in the too early band", true, true, 0, true, 150).bindTo(pressEarlyMs);
-	cvarManager->registerCvar("walldash_press_green_ms", "80", "Press to press up to this is in the green band", true, true, 0, true, 150).bindTo(pressGreenMs);
 	cvarManager->registerCvar("walldash_speed_red_below", "0", "Speed gain below this draws red. At 0 only a loss is red", true, true, 0, true, 600).bindTo(speedRedBelow);
 	cvarManager->registerCvar("walldash_stats_by_wall", "1", "Show session stats separately for the left and right walls", true, true, 0, true, 1).bindTo(statsByWall);
 	cvarNames.push_back("walldash_stats_by_wall");
 	cvarNames.push_back("walldash_overlay_on");
 	cvarNames.push_back("walldash_press_early_ms");
-	cvarNames.push_back("walldash_press_green_ms");
 	cvarNames.push_back("walldash_speed_red_below");
 
 	// Top of the screen for timing, bottom for the rest, so the car stays visible.
@@ -205,14 +203,29 @@ void Overlay::DrawBars(CanvasWrapper& canvas, const OverlayPanel& panel, const O
 		pressText += std::format(", about {:.0f} ms real time at {:.0f}% speed", TicksToMs(press) / a->gameSpeed, a->gameSpeed * 100.f);
 
 	const float inf = std::numeric_limits<float>::max();
-	const float late = data.config ? data.config->latePressMs : 95.f;
-	const std::vector<Band> pressBands = {
-		{ 0.f, *pressEarlyMs, kRed },
-		{ *pressEarlyMs, *pressGreenMs, kGreen },
-		{ *pressGreenMs, late, kYellow },
-		{ late, inf, kRed },
-	};
+	const float slack = walldash::kBandSlackMs;
+
+	// The limits follow the speed at the first press, so they settle as soon as
+	// an attempt starts.
+	std::vector<Band> pressBands;
+	std::vector<Band> holdBands;
 	const std::vector<Band> noBands;
+	if (data.config)
+	{
+		const walldash::AttemptConfig& c = *data.config;
+		const walldash::PressBand& limits = c.PressBandFor(a ? a->speedFirstPress : 0.f);
+		pressBands = {
+			{ 0.f, *pressEarlyMs, kRed },
+			{ *pressEarlyMs, limits.greenMs + slack, kGreen },
+			{ limits.greenMs + slack, limits.yellowMs + slack, kYellow },
+			{ limits.yellowMs + slack, inf, kRed },
+		};
+		holdBands = {
+			{ 0.f, c.holdGreenMs + slack, kGreen },
+			{ c.holdGreenMs + slack, c.holdMaxMs + slack, kYellow },
+			{ c.holdMaxMs + slack, inf, kRed },
+		};
+	}
 
 	const Vector2F size{ 620.f * scale, 22.f * scale };
 	const float rowHeight = 56.f * scale;
@@ -220,7 +233,7 @@ void Overlay::DrawBars(CanvasWrapper& canvas, const OverlayPanel& panel, const O
 
 	DrawRangeBar(canvas, pressText, press < 0 ? -1.f : TicksToMs(press), kBarMaxMs, pos, size, scale, pressBands);
 	pos.Y += rowHeight;
-	DrawRangeBar(canvas, TimingText("Hold", hold), hold < 0 ? -1.f : TicksToMs(hold), kBarMaxMs, pos, size, scale, noBands);
+	DrawRangeBar(canvas, TimingText("Hold", hold), hold < 0 ? -1.f : TicksToMs(hold), kBarMaxMs, pos, size, scale, holdBands);
 	pos.Y += rowHeight;
 	DrawRangeBar(canvas, TimingText("Release to press", release), release < 0 ? -1.f : TicksToMs(release), kBarMaxMs, pos, size, scale, noBands);
 }

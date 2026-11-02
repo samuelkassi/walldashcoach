@@ -66,15 +66,32 @@ void WallDashTrainer::RenderSettings()
 
 	if (ImGui::CollapsingHeader("Press to press bands"))
 	{
-		ImGui::TextUnformatted("Times are in game time. These are starting values until they are set from recorded data.");
+		ImGui::TextUnformatted("Times are in game time. The defaults come from one player's data, so tighten them as you improve.");
 		SettingsSlider("Too early below (ms)", "walldash_press_early_ms", 0.f, 150.f, "%.0f");
-		SettingsSlider("Green up to (ms)", "walldash_press_green_ms", 0.f, 150.f, "%.0f");
-		SettingsSlider("Yellow up to, then too late (ms)", "walldash_late_press_ms", 0.f, 150.f, "%.0f");
+
+		static const char* const speedLabels[walldash::kPressBandCount] = {
+			"Under 1300 uu/s", "1300 to 1500 uu/s", "1500 to 1700 uu/s", "1700 to 1900 uu/s", "1900 uu/s and up"
+		};
+		for (int i = 0; i < walldash::kPressBandCount; i++)
+		{
+			const std::string row = std::to_string(i + 1);
+			ImGui::PushID(i);
+			ImGui::TextUnformatted(speedLabels[i]);
+			SettingsSlider("Green up to (ms)", "walldash_press_green_ms_" + row, 0.f, 200.f, "%.0f");
+			SettingsSlider("Yellow up to, then too late (ms)", "walldash_press_yellow_ms_" + row, 0.f, 200.f, "%.0f");
+			ImGui::PopID();
+		}
+	}
+
+	if (ImGui::CollapsingHeader("Hold bands"))
+	{
+		SettingsSlider("Green up to (ms)", "walldash_hold_green_ms", 0.f, 200.f, "%.0f");
+		SettingsSlider("Yellow up to, then held too long (ms, 0 turns the miss reason off)", "walldash_hold_max_ms", 0.f, 200.f, "%.0f");
 	}
 
 	if (ImGui::CollapsingHeader("Flip angle bands"))
 	{
-		ImGui::TextUnformatted("Degrees from straight ahead, toward the ceiling. Starting values until they are set from recorded data.");
+		ImGui::TextUnformatted("Degrees from straight ahead, toward the ceiling. The defaults come from one player's data.");
 		SettingsSlider("Too forward below", "walldash_flip_yellow_min", 0.f, 90.f, "%.0f");
 		SettingsSlider("Green from", "walldash_flip_green_min", 0.f, 90.f, "%.0f");
 		SettingsSlider("Green up to", "walldash_flip_green_max", 0.f, 90.f, "%.0f");
@@ -94,7 +111,6 @@ void WallDashTrainer::RenderSettings()
 		SettingsSlider("Wheels on the wall for a make", "walldash_make_min_wheels", 1.f, 4.f, "%.0f");
 		SettingsSlider("How upright for a make", "walldash_upright_dot", 0.f, 1.f, "%.2f");
 		SettingsSlider("Peak speed window after reattaching (s)", "walldash_speed_window_s", 0.f, 1.f, "%.2f");
-		SettingsSlider("First jump held too long (ms, 0 is off)", "walldash_hold_max_ms", 0.f, 300.f, "%.0f");
 		SettingsSlider("Jump presses that count as spam", "walldash_spam_presses", 2.f, 12.f, "%.0f");
 	}
 

@@ -446,13 +446,13 @@ namespace walldash
 				return;
 			}
 		}
-		if (a.PressToPressMs() > config.latePressMs)
+		if (a.PressToPressMs() > config.PressBandFor(a.speedFirstPress).yellowMs + kBandSlackMs)
 		{
 			a.diagnosis = Diagnosis::TooLate;
-			a.diagnosisText = std::format("Second press too late: {:.0f} ms", a.PressToPressMs());
+			a.diagnosisText = std::format("Second press too late: {:.0f} ms at {:.0f} uu/s", a.PressToPressMs(), a.speedFirstPress);
 			return;
 		}
-		if (config.holdMaxMs > 0.f && a.HoldMs() > config.holdMaxMs)
+		if (config.holdMaxMs > 0.f && a.HoldMs() > config.holdMaxMs + kBandSlackMs)
 		{
 			a.diagnosis = Diagnosis::HeldTooLong;
 			a.diagnosisText = std::format("First jump held {:.0f} ms", a.HoldMs());

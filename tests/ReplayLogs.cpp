@@ -84,6 +84,15 @@ namespace
 
 int main(int argc, char** argv)
 {
+	if (argc == 4 && std::string(argv[1]) == "--anonymize")
+	{
+		std::ifstream in(argv[2]);
+		std::ofstream out(argv[3], std::ios::trunc);
+		std::map<std::string, int> sessions;
+		std::cout << AnonymizeAttemptCsv(in, out, sessions) << " rows, " << sessions.size() << " sessions\n";
+		return 0;
+	}
+
 	if (argc < 2)
 	{
 		std::cerr << "Usage: ReplayLogs <debug_ticks.csv> [--speed 0.5] [--out attempts.csv] [--expect-left 6/12] [--expect-right 10/10]\n";

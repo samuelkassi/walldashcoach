@@ -96,6 +96,75 @@ namespace walldash
 		return row.str();
 	}
 
+	int AnonymizeAttemptCsv(std::istream& in, std::ostream& out, std::map<std::string, int>& sessions)
+	{
+		// Splits on commas outside quotes, keeping each field's text exactly as written.
+		const auto split = [](const std::string& line)
+			{
+				std::vector<std::string> fields(1);
+				bool quoted = false;
+				for (char c : line)
+				{
+					if (c == '"')
+						quoted = !quoted;
+					if (c == ',' && !quoted)
+						fields.emplace_back();
+					else
+						fields.back() += c;
+				}
+				return fields;
+			};
+
+		std::string line;
+		if (!std::getline(in, line))
+			return 0;
+
+		const std::vector<std::string> header = split(line);
+		int timestampColumn = -1;
+		int sessionColumn = -1;
+		for (int i = 0; i < static_cast<int>(header.size()); i++)
+		{
+			if (header[i] == "timestamp") timestampColumn = i;
+			if (header[i] == "session_id") sessionColumn = i;
+		}
+
+		const auto writeRow = [&](const std::vector<std::string>& fields)
+			{
+				bool first = true;
+				for (int i = 0; i < static_cast<int>(fields.size()); i++)
+				{
+					if (i == timestampColumn)
+						continue;
+					if (!first)
+						out << ',';
+					first = false;
+					out << fields[i];
+				}
+				out << '\n';
+			};
+
+		std::vector<std::string> newHeader = header;
+		if (sessionColumn >= 0)
+			newHeader[sessionColumn] = "session";
+		writeRow(newHeader);
+
+		int rows = 0;
+		while (std::getline(in, line))
+		{
+			std::vector<std::string> fields = split(line);
+			if (fields.size() != header.size())
+				continue;
+			if (sessionColumn >= 0)
+			{
+				const auto inserted = sessions.try_emplace(fields[sessionColumn], static_cast<int>(sessions.size()) + 1);
+				fields[sessionColumn] = std::to_string(inserted.first->second);
+			}
+			writeRow(fields);
+			rows++;
+		}
+		return rows;
+	}
+
 	void SessionStats::Add(const AttemptResult& a)
 	{
 		if (a.spamInput)

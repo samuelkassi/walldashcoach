@@ -67,7 +67,6 @@ private:
 
 	std::shared_ptr<bool> enabled = std::make_shared<bool>(true);
 	std::shared_ptr<float> pressEarlyMs = std::make_shared<float>(58.f);
-	std::shared_ptr<float> pressGreenMs = std::make_shared<float>(80.f);
 	std::shared_ptr<float> speedRedBelow = std::make_shared<float>(0.f);
 	std::shared_ptr<bool> statsByWall = std::make_shared<bool>(true);
 };
