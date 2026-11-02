@@ -77,6 +77,7 @@ namespace walldash
 		case Diagnosis::BadFlipAngle: return "bad_flip_angle";
 		case Diagnosis::NotUpright: return "not_upright";
 		case Diagnosis::Scraped: return "scraped";
+		case Diagnosis::NoReturn: return "no_return";
 		default: return "unclassified";
 		}
 	}
@@ -595,6 +596,13 @@ namespace walldash
 		{
 			a.diagnosis = Diagnosis::Scraped;
 			a.diagnosisText = std::format("Scraped: touched with {} wheels but didn't stick", a.maxWheels);
+			return;
+		}
+
+		if (a.firstTouchTicks < 0)
+		{
+			a.diagnosis = Diagnosis::NoReturn;
+			a.diagnosisText = std::format("Didn't come back to the wall, went {:.0f} uu away", a.maxWallDistance);
 			return;
 		}
 

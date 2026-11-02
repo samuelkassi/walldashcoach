@@ -65,6 +65,7 @@ namespace walldash
 		BadFlipAngle,
 		NotUpright,
 		Scraped,
+		NoReturn, // Nothing else looked wrong, but the wheels never touched the wall again.
 		Unclassified
 	};
 
