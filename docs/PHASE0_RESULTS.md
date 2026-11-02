@@ -1,6 +1,6 @@
 # Phase 0 results (2 Nov 2026)
 
-**Status: the 100% speed run passes. The 50% speed run is still to do.**
+**Status: the 100% and 50% speed runs both pass. Only the air roll check is still to do.**
 
 Source: `debug_ticks_2026-11-02_183112.csv`, a snapshot of about 60,000 ticks in freeplay at 100% speed, with 194 jump presses. The snapshot was taken while logging was still on, so it stops shortly before the end of the session.
 
@@ -81,9 +81,28 @@ Using "reaches at least 3 wheels on the wall soon after the first touch, with ca
 | 117 ms (14) | 68 | +142 |
 | 117 ms (14) | 78 | +49 |
 
-This is a small sample and the make labels are not yet checked against what you saw. The 50% run is meant to check them.
+With green at 80 ms or less and red above 95 ms, six of these seven would be red. The 50% run below suggests they are marginal makes, not that the bands are wrong.
 
-**It conflicts with the starting bands in the brief.** With green at 80 ms or less and red above 95 ms, six of these seven makes would be red and "Second press too late" would fire on them. They may be makes for other reasons, and Phase 3 should decide. Until then I suggest Phase 1 logs press-to-press without using it as a miss reason.
+## The 50% speed run
+
+Source: `debug_ticks_2026-11-02_185205.csv`, 22 wall attempts.
+
+**The make rule matches your count.** Your count was every dash on one side and 5 or 6 of about 12 on the other. The rule (3 or more wheels within 30 ticks of first touch, car up within about 25 degrees of the wall normal) gives 10 of 10 and 6 of 12. One thing to settle: your "right side" is the group where the car's right vector points at the ceiling, which means the stick flicks right for a ceiling flip. The plugin should label sides by a defined rule rather than assume.
+
+**Logged time is game time.** At 50% each tick still logs as 8.33 ms, and ticks arrived far more slowly than 120 per second. Wheels still lost contact 7 ticks after the jump, the same as at 100%. So ticks and logged ms measure the game's physics, whatever the game speed.
+
+**Your hands run at about the same speed at both game speeds.** This assumes the game was at exactly 50%, so one tick is about 16.7 ms of real time.
+
+| Game speed | Typical press to press, ticks | Game time | Real time |
+|---|---|---|---|
+| 100% | 13 to 16 | 108 to 133 ms | 108 to 133 ms |
+| 50% | 7 | 58 ms | about 117 ms |
+
+Slow motion works because it halves the game time of the same hand movement. At 7 ticks the second press lands right as the wheels leave the wall, and first contact comes back at 9 or 10 ticks. At 100% first contact comes at 19 to 25 ticks and most reps only scrape.
+
+So the brief's "80 ms or less" looks like a sensible green band. The real target for your hands at 100% is to get from about 117 ms down toward 60 to 80 ms. Phase 3 should still set the bands from data, and 50% attempts should be logged with the game speed so they can be split out.
+
+Early lead, small sample: the 3 clear misses at 7 to 8 ticks had flip angles of 25 to 31 degrees, while 14 of the 16 makes were 33 degrees or more.
 
 ## Other findings for Phase 1
 
@@ -93,5 +112,4 @@ This is a small sample and the make labels are not yet checked against what you 
 
 ## Still to do
 
-- 50% speed run: check the make labels against your count, and see how game speed affects the tick count and logged times.
 - A few more reps with air roll to test the roll term.
