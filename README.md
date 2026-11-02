@@ -4,6 +4,8 @@ A BakkesMod plugin for Rocket League that measures your wall dash attempts in fr
 
 It trains the controlled two-press method: a short first jump off the wall, a flick of the stick, then a second jump that dodges the car back onto the wall. It works in freeplay only and does nothing in online matches. It is built for controllers.
 
+![The overlay after a make, with timing bars at the top and the stick display and speed gain at the bottom](docs/images/overlay-make.jpg)
+
 ## Getting started
 
 1. Install it from bakkesplugins.com, or build it from source as described below.
@@ -20,6 +22,8 @@ The default view shows the timing bars, the verdict, the stick display and speed
 - **Hold:** how long you held the first jump.
 - **Release to press:** time from letting go of the first jump to the second press. This one is for information, and has no target.
 - **Verdict:** MAKE or MISS, with the reason for a miss.
+
+![The overlay after a miss, reporting a flip angle of 44 degrees as too forward](docs/images/overlay-miss.jpg)
 
 **At the bottom:**
 
@@ -38,6 +42,10 @@ Times are in game time, so at 50% speed the overlay also shows the real time you
 Everything can be changed in the settings window, including every band and each panel's position and size. Make and miss rules, hold bands, surface detection and logging are under Advanced.
 
 **Chain dashes** (off by default): shows your current and best chain and the speed lost between dashes. A chain continues while each dash is a make and the next jump comes within 1 second of landing. An optional counter under Advanced tracks how many chain dashes you have recorded per wall.
+
+![The overlay with the chain counter and speed lost between dashes showing](docs/images/overlay-chain.jpg)
+
+![The settings window with its sections collapsed](docs/images/settings.jpg)
 
 **Console commands** (F6):
 
@@ -61,7 +69,7 @@ This is optional and not in the settings window. If you would like to share your
 walldash_export_share_data
 ```
 
-It writes copies of your attempt files to `<BakkesMod data folder>/walldashtrainer/share/`, with timestamps removed and session ids replaced by plain numbers. They still contain your inputs, car movement and controller deadzones. Sending them is entirely up to you. Contact details will be added here before release.
+It writes copies of your attempt files to `<BakkesMod data folder>/walldashtrainer/share/`, with timestamps removed and session ids replaced by plain numbers. They still contain your inputs, car movement and controller deadzones. Sending them is entirely up to you. To share them or suggest tighter bands, message `samuelkassi` on Discord.
 
 ## Where the numbers come from
 
