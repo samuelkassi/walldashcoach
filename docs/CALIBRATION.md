@@ -66,6 +66,18 @@ The regression finds no significant effect from setting it earlier.
 
 **Is speed a real help?** Yes, and it is the top factor by permutation importance on later attempts, level with press to press (AUC drops of 0.140 and 0.138, against 0.093 for flip angle and 0.024 for hold). It does not need a separate interaction with timing (p 0.37): the two simply add up on the odds scale, which is enough to make speed look very forgiving in raw tables.
 
+**Does the best flip angle depend on speed?** Yes (`tools/speed_angle.py`, likelihood ratio test p 0.0001, though see the limits below on p values). Speed mostly widens the range of angles that work, and 50 to 60 degrees holds up at every speed.
+
+| Flip angle | Under 1300 | 1300 to 1500 | 1500 to 1700 | 1700 to 1900 | 1900 and up |
+|---|---|---|---|---|---|
+| 40 to 50 | 33% | 32% | 58% | 70% | 57% |
+| 50 to 60 | 87% | 80% | 86% | 92% | 88% |
+| 60 to 70 | 62% | 72% | 80% | 90% | 96% |
+| 70 to 80 | 52% | 56% | 75% | 91% | 92% |
+| 80 to 90 | 27% | 49% | 57% | 73% | 95% |
+
+Some of these cells are small, with 7 to 18 dashes in the 40 to 50 row and the under 1300 column's outer cells. Speed gain depends mostly on angle, so a high angle at high speed is safe but gains little: 95% and a median of 11 uu/s at 80 to 90 degrees from 1900 uu/s. The flip angle bands stay fixed rather than moving with speed, because 50 to 70 degrees is a sound target throughout and a moving target would be harder to learn. Press to press already moves with speed.
+
 **Did practice itself help?** Practice has no significant effect left after angle, speed and timing are counted. The improvement shows up in those measurable things.
 
 **Going up or down the wall?** Slightly down has the highest raw make rate: 79% from 3 to 10 degrees downward, 73% level and 67% from 3 to 10 degrees upward. It is not significant in the full model (p 0.13). This does not test the turn before the press, which is not logged yet.
