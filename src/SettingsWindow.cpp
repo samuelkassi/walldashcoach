@@ -46,18 +46,7 @@ void WallDashTrainer::RenderSettings()
 	SettingsCheckbox("Show the overlay", "walldash_overlay_on");
 	SettingsCheckbox("Split session stats by wall", "walldash_stats_by_wall");
 
-	if (ImGui::CollapsingHeader("Chains"))
-	{
-		ImGui::TextUnformatted("Chains are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
-		SettingsCheckbox("Show chains", "walldash_chains_on");
-		SettingsSlider("Longest gap from reattaching to the next jump (s)", "walldash_chain_gap_s", 0.1f, 3.f, "%.2f");
-		ImGui::Separator();
-		ImGui::TextUnformatted("For collecting chain data. Counts follow-up dashes across sessions, from your saved attempt files.");
-		SettingsCheckbox("Show chain sample counter", "walldash_sample_counter_on");
-		SettingsSlider("Target per wall", "walldash_sample_target", 1.f, 2000.f, "%.0f");
-	}
-
-	if (ImGui::CollapsingHeader("Overlay panels", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader("Overlay panels"))
 	{
 		for (const OverlayPanel& panel : overlay.Panels())
 		{
@@ -73,6 +62,13 @@ void WallDashTrainer::RenderSettings()
 			}
 			ImGui::PopID();
 		}
+	}
+
+	if (ImGui::CollapsingHeader("Chains"))
+	{
+		ImGui::TextUnformatted("Chains are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
+		SettingsCheckbox("Show chains", "walldash_chains_on");
+		SettingsSlider("Longest gap from reattaching to the next jump (s)", "walldash_chain_gap_s", 0.1f, 3.f, "%.2f");
 	}
 
 	if (ImGui::CollapsingHeader("Press to press bands"))
@@ -92,12 +88,6 @@ void WallDashTrainer::RenderSettings()
 			SettingsSlider("Yellow up to, then too late (ms)", "walldash_press_yellow_ms_" + row, 0.f, 200.f, "%.0f");
 			ImGui::PopID();
 		}
-	}
-
-	if (ImGui::CollapsingHeader("Hold bands"))
-	{
-		SettingsSlider("Green up to (ms)", "walldash_hold_green_ms", 0.f, 200.f, "%.0f");
-		SettingsSlider("Yellow up to, then held too long (ms, 0 turns the miss reason off)", "walldash_hold_max_ms", 0.f, 200.f, "%.0f");
 	}
 
 	if (ImGui::CollapsingHeader("Flip angle bands"))
@@ -125,21 +115,41 @@ void WallDashTrainer::RenderSettings()
 		SettingsSlider("Jump presses that count as spam", "walldash_spam_presses", 2.f, 12.f, "%.0f");
 	}
 
-	if (ImGui::CollapsingHeader("Surface detection"))
+	if (ImGui::CollapsingHeader("Advanced"))
 	{
-		SettingsSlider("Curve above this normal height", "walldash_curve_up_z", 0.f, 1.f, "%.2f");
-		SettingsSlider("Flat wall at or above this axis match", "walldash_corner_axis", 0.5f, 1.f, "%.3f");
-		SettingsSlider("Floor at or above this car up height", "walldash_floor_up_z", 0.5f, 1.f, "%.2f");
-		SettingsSlider("Ceiling at or below this car up height", "walldash_ceiling_up_z", -1.f, 0.f, "%.2f");
-		SettingsSlider("Floor touch below this height", "walldash_floor_height", 0.f, 200.f, "%.0f");
-		SettingsSlider("Flip angle undefined below this right vector height", "walldash_angle_min_right_z", 0.f, 1.f, "%.2f");
-	}
+		if (ImGui::TreeNode("Hold bands"))
+		{
+			SettingsSlider("Green up to (ms)", "walldash_hold_green_ms", 0.f, 200.f, "%.0f");
+			SettingsSlider("Yellow up to, then held too long (ms, 0 turns the miss reason off)", "walldash_hold_max_ms", 0.f, 200.f, "%.0f");
+			ImGui::TreePop();
+		}
 
-	if (ImGui::CollapsingHeader("Logging"))
-	{
-		SettingsCheckbox("Write the attempt CSV", "walldash_attempt_log");
-		SettingsCheckbox("Print each attempt to the console", "walldash_console_log");
-		SettingsCheckbox("Write the per-tick debug log", "walldash_debug_log");
+		if (ImGui::TreeNode("Chain data collection"))
+		{
+			ImGui::TextUnformatted("Counts follow-up dashes across sessions, from your saved attempt files.");
+			SettingsCheckbox("Show chain sample counter", "walldash_sample_counter_on");
+			SettingsSlider("Target per wall", "walldash_sample_target", 1.f, 2000.f, "%.0f");
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Surface detection"))
+		{
+			SettingsSlider("Curve above this normal height", "walldash_curve_up_z", 0.f, 1.f, "%.2f");
+			SettingsSlider("Flat wall at or above this axis match", "walldash_corner_axis", 0.5f, 1.f, "%.3f");
+			SettingsSlider("Floor at or above this car up height", "walldash_floor_up_z", 0.5f, 1.f, "%.2f");
+			SettingsSlider("Ceiling at or below this car up height", "walldash_ceiling_up_z", -1.f, 0.f, "%.2f");
+			SettingsSlider("Floor touch below this height", "walldash_floor_height", 0.f, 200.f, "%.0f");
+			SettingsSlider("Flip angle undefined below this right vector height", "walldash_angle_min_right_z", 0.f, 1.f, "%.2f");
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Logging"))
+		{
+			SettingsCheckbox("Write the attempt CSV", "walldash_attempt_log");
+			SettingsCheckbox("Print each attempt to the console", "walldash_console_log");
+			SettingsCheckbox("Write the per-tick debug log", "walldash_debug_log");
+			ImGui::TreePop();
+		}
 	}
 
 	ImGui::Separator();
