@@ -17,6 +17,9 @@ namespace
 	constexpr float kTextScale = 1.7f;
 	constexpr float kStickUnit = 80.f; // Pixels for a stick value of 1 at scale 1.
 	constexpr int kCircleSegments = 48;
+	constexpr float kSectorInner = 1.03f; // Rim thickness, in stick units.
+	constexpr float kSectorOuter = 1.17f;
+	constexpr float kSectorStepDeg = 3.f;
 
 	const LinearColor kBackground(30, 30, 30, 170);
 	const LinearColor kWhite(255, 255, 255, 255);
@@ -106,15 +109,17 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	cvarManager->registerCvar("walldash_overlay_on", "1", "Show the overlay in freeplay", true, true, 0, true, 1).bindTo(enabled);
 	cvarManager->registerCvar("walldash_press_early_ms", "58", "Press to press below this is in the too early band", true, true, 0, true, 150).bindTo(pressEarlyMs);
 	cvarManager->registerCvar("walldash_press_green_ms", "80", "Press to press up to this is in the green band", true, true, 0, true, 150).bindTo(pressGreenMs);
+	cvarManager->registerCvar("walldash_speed_red_below", "0", "Speed gain below this draws red. At 0 only a loss is red", true, true, 0, true, 600).bindTo(speedRedBelow);
 	cvarNames.push_back("walldash_overlay_on");
 	cvarNames.push_back("walldash_press_early_ms");
 	cvarNames.push_back("walldash_press_green_ms");
+	cvarNames.push_back("walldash_speed_red_below");
 
 	// Top of the screen for timing, bottom for the rest, so the car stays visible.
 	AddPanel(cvarManager, "bars", "Timing bars", 0.34f, 0.015f);
 	AddPanel(cvarManager, "verdict", "Verdict", 0.34f, 0.19f);
 	AddPanel(cvarManager, "surface", "Surface note", 0.34f, 0.25f);
-	AddPanel(cvarManager, "stick", "Stick display", 0.30f, 0.76f);
+	AddPanel(cvarManager, "stick", "Stick display", 0.26f, 0.73f);
 	AddPanel(cvarManager, "speed", "Speed gain", 0.42f, 0.76f);
 	AddPanel(cvarManager, "distance", "Wall distance", 0.42f, 0.84f);
 	AddPanel(cvarManager, "stats", "Session stats", 0.42f, 0.87f);
@@ -260,6 +265,50 @@ void Overlay::DrawStick(CanvasWrapper& canvas, const OverlayPanel& panel, const 
 			return Vector2F{ center.X + yaw * unit, center.Y + pitch * unit };
 		};
 
+	const AttemptResult* a = data.live ? data.live : data.finished;
+
+	// Coloured sectors on the rim mark the flip angle bands. Toward the ceiling
+	// is stick right on the right wall and stick left on the left wall, so only
+	// the current wall's side is shown once a wall is known.
+	if (data.config)
+	{
+		const walldash::AttemptConfig& c = *data.config;
+		const auto sector = [&](float side, float fromDeg, float toDeg, const LinearColor& color)
+			{
+				const float radians = 3.14159265f / 180.f;
+				canvas.SetColor(color);
+				for (float angle = fromDeg; angle < toDeg; angle += kSectorStepDeg)
+				{
+					const float next = std::min(angle + kSectorStepDeg, toDeg);
+					const auto rimPoint = [&](float deg, float radius)
+						{
+							return Vector2F{ center.X + side * std::sin(deg * radians) * radius * unit, center.Y - std::cos(deg * radians) * radius * unit };
+						};
+					const Vector2F a1 = rimPoint(angle, kSectorInner);
+					const Vector2F a2 = rimPoint(angle, kSectorOuter);
+					const Vector2F b1 = rimPoint(next, kSectorInner);
+					const Vector2F b2 = rimPoint(next, kSectorOuter);
+					canvas.FillTriangle(a1, a2, b1);
+					canvas.FillTriangle(a2, b2, b1);
+				}
+			};
+		const auto drawSide = [&](float side)
+			{
+				sector(side, c.flipYellowMin, c.flipGreenMin, kYellow);
+				sector(side, c.flipGreenMin, c.flipGreenMax, kGreen);
+				sector(side, c.flipGreenMax, c.flipYellowMax, kYellow);
+			};
+		if (a)
+		{
+			drawSide(a->wallSide == walldash::WallSide::Right ? 1.f : -1.f);
+		}
+		else
+		{
+			drawSide(1.f);
+			drawSide(-1.f);
+		}
+	}
+
 	// The stick's full range.
 	canvas.SetColor(kWhite);
 	const float step = 2.f * 3.14159265f / kCircleSegments;
@@ -272,8 +321,6 @@ void Overlay::DrawStick(CanvasWrapper& canvas, const OverlayPanel& panel, const 
 	canvas.SetColor(kFaint);
 	canvas.DrawLine(Vector2F{ center.X - unit, center.Y }, Vector2F{ center.X + unit, center.Y }, 1.f);
 	canvas.DrawLine(Vector2F{ center.X, center.Y - unit }, Vector2F{ center.X, center.Y + unit }, 1.f);
-
-	const AttemptResult* a = data.live ? data.live : data.finished;
 
 	// The game flips once |pitch| + |yaw| + |roll| reaches the deadzone, which
 	// makes the stick's deadzone a diamond, not a ring.
@@ -309,20 +356,42 @@ void Overlay::DrawStick(CanvasWrapper& canvas, const OverlayPanel& panel, const 
 	marker(a->holdTicks, kYellow);
 	marker(a->pressToPressTicks, kGreen);
 
-	const Vector2F legendPos{ center.X - unit * 1.3f, center.Y + unit * 1.25f };
-	const float legendScale = kTextScale * 0.7f * scale;
-	DrawText(canvas, "1st press", legendPos, legendScale, kNeutral);
-	DrawText(canvas, "release", Vector2F{ legendPos.X + 66.f * scale, legendPos.Y }, legendScale, kYellow);
-	DrawText(canvas, "2nd press", Vector2F{ legendPos.X + 118.f * scale, legendPos.Y }, legendScale, kGreen);
+	// Laid out from the measured text widths, so the labels never run together.
+	const float legendScale = kTextScale * 0.8f * scale;
+	const float legendGap = 18.f * scale;
+	Vector2F legendPos{ center.X - unit * 1.3f, center.Y + unit * 1.4f };
+	const auto legendEntry = [&](const std::string& text, const LinearColor& color)
+		{
+			DrawText(canvas, text, legendPos, legendScale, color);
+			legendPos.X += canvas.GetStringSize(text, legendScale, legendScale).X + legendGap;
+		};
+	legendEntry("1st press", kNeutral);
+	legendEntry("release", kYellow);
+	legendEntry("2nd press", kGreen);
 
 	if (!std::isnan(a->flipDirForward))
 	{
+		LinearColor lineColor = kFlipLine;
+		if (!a->flipAngleUndefined && data.config)
+		{
+			const walldash::AttemptConfig& c = *data.config;
+			const float flip = a->flipAngleDeg;
+			if (flip >= c.flipGreenMin && flip <= c.flipGreenMax) lineColor = kGreen;
+			else if (flip >= c.flipYellowMin && flip <= c.flipYellowMax) lineColor = kYellow;
+			else lineColor = kRed;
+		}
+
 		const Vector2F tip = toScreen(-a->flipDirForward, a->flipDirRight);
-		canvas.SetColor(kFlipLine);
+		canvas.SetColor(lineColor);
 		canvas.DrawLine(center, tip, 3.f * scale);
 
+		// Placed past the coloured rim so it stays readable.
 		const std::string angle = a->flipAngleUndefined ? "flip undefined" : std::format("{:.0f} deg", a->flipAngleDeg);
-		DrawText(canvas, angle, Vector2F{ tip.X + 6.f * scale, tip.Y - 8.f * scale }, kTextScale * 0.85f * scale, kFlipLine);
+		const Vector2F label = toScreen(-a->flipDirForward * kSectorOuter, a->flipDirRight * kSectorOuter);
+		const float labelScale = kTextScale * 0.85f * scale;
+		const float labelWidth = canvas.GetStringSize(angle, labelScale, labelScale).X;
+		const float labelX = a->flipDirRight < 0.f ? label.X - labelWidth - 8.f * scale : label.X + 8.f * scale;
+		DrawText(canvas, angle, Vector2F{ labelX, label.Y - 8.f * scale }, labelScale, lineColor);
 	}
 }
 
@@ -341,7 +410,7 @@ void Overlay::DrawSpeed(CanvasWrapper& canvas, const OverlayPanel& panel, const 
 	{
 		const float amount = std::clamp(a->speedGain / kSpeedBarRange, -1.f, 1.f) * size.X / 2.f;
 		if (amount >= 0.f)
-			FillRect(canvas, Vector2F{ middle, pos.Y }, Vector2F{ amount, size.Y }, kGreen);
+			FillRect(canvas, Vector2F{ middle, pos.Y }, Vector2F{ amount, size.Y }, a->speedGain < *speedRedBelow ? kRed : kGreen);
 		else
 			FillRect(canvas, Vector2F{ middle + amount, pos.Y }, Vector2F{ -amount, size.Y }, kRed);
 	}

@@ -85,6 +85,13 @@ namespace walldash
 		float ceilingUpZ = -0.7f;
 		float floorHeight = 60.f;
 		float angleMinRightZ = 0.2f;
+
+		// Flip angle bands in degrees toward the ceiling. Inside green is best,
+		// inside yellow is acceptable, and outside yellow is a miss reason.
+		float flipYellowMin = 40.f;
+		float flipGreenMin = 50.f;
+		float flipGreenMax = 80.f;
+		float flipYellowMax = 90.f;
 	};
 
 	struct StickPoint
@@ -124,6 +131,17 @@ namespace walldash
 		float stickMagnitude = kNotMeasured;
 		float stickSum = kNotMeasured; // |pitch| + |yaw| + |roll|, the value the game compares to the deadzone.
 		bool pastDodgeDeadzone = false;
+
+		// Stick direction at each of the three moments, using the flip angle
+		// convention: positive is toward the ceiling, 0 is forward. Roll is left
+		// out, so these show the stick alone.
+		float stickAngleFirstPress = kNotMeasured;
+		float stickAngleRelease = kNotMeasured;
+		float stickAngleSecondPress = kNotMeasured;
+		float stickSumFirstPress = kNotMeasured;
+		float stickSumRelease = kNotMeasured;
+		float stickSumSecondPress = kNotMeasured;
+
 		float dodgeDeadzone = 0.f;
 		float controllerDeadzone = 0.f;
 

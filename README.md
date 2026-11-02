@@ -49,8 +49,8 @@ build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect
 |---|---|---|
 | 0 | Prove the events and measurements work | Done, see [results](docs/PHASE0_RESULTS.md) |
 | 1 | Detect attempts, judge make or miss, write the attempt CSV | Done, see [results](docs/PHASE1_RESULTS.md) |
-| 2 | On-screen overlay and settings window | In progress |
-| 3 | Set the timing bands from recorded data | Planned |
+| 2 | On-screen overlay and settings window | Done, see [results](docs/PHASE2_RESULTS.md) |
+| 3 | Find what drives makes from a large sample, then set the bands from it | Next |
 | 4 | Optional chains and reset-to-wall | Planned |
 | 5 | Prepare for release on bakkesplugins.com | Planned |
 

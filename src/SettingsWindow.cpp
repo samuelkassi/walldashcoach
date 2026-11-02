@@ -71,6 +71,21 @@ void WallDashTrainer::RenderSettings()
 		SettingsSlider("Yellow up to, then too late (ms)", "walldash_late_press_ms", 0.f, 150.f, "%.0f");
 	}
 
+	if (ImGui::CollapsingHeader("Flip angle bands"))
+	{
+		ImGui::TextUnformatted("Degrees from straight ahead, toward the ceiling. Starting values until they are set from recorded data.");
+		SettingsSlider("Too forward below", "walldash_flip_yellow_min", 0.f, 90.f, "%.0f");
+		SettingsSlider("Green from", "walldash_flip_green_min", 0.f, 90.f, "%.0f");
+		SettingsSlider("Green up to", "walldash_flip_green_max", 0.f, 90.f, "%.0f");
+		SettingsSlider("Too sideways above", "walldash_flip_yellow_max", 0.f, 120.f, "%.0f");
+	}
+
+	if (ImGui::CollapsingHeader("Speed gain"))
+	{
+		ImGui::TextUnformatted("At 0, only a speed loss is red. Raise it to also mark small gains in red.");
+		SettingsSlider("Red below (uu/s)", "walldash_speed_red_below", 0.f, 600.f, "%.0f");
+	}
+
 	if (ImGui::CollapsingHeader("Make and miss rules"))
 	{
 		SettingsSlider("Attempt timeout (s)", "walldash_timeout_s", 0.25f, 3.f, "%.2f");

@@ -369,6 +369,22 @@ namespace walldash
 		if (attempt.make)
 			attempt.speedGain = attempt.speedPeak - attempt.speedFirstPress;
 
+		// The path has one point per tick from the first press, so a timing in
+		// ticks is also its index. It stops at the dodge.
+		const float side = attempt.wallSide == WallSide::Right ? 1.f : -1.f;
+		const auto measureAt = [&](int ticks, float& angle, float& sum)
+			{
+				if (ticks < 0 || ticks >= static_cast<int>(attempt.stickPath.size()))
+					return;
+				const StickPoint& point = attempt.stickPath[ticks];
+				sum = std::abs(point.pitch) + std::abs(point.yaw);
+				if (sum > 0.f)
+					angle = std::atan2(point.yaw * side, -point.pitch) * kRadToDeg;
+			};
+		measureAt(0, attempt.stickAngleFirstPress, attempt.stickSumFirstPress);
+		measureAt(attempt.holdTicks, attempt.stickAngleRelease, attempt.stickSumRelease);
+		measureAt(attempt.pressToPressTicks, attempt.stickAngleSecondPress, attempt.stickSumSecondPress);
+
 		Diagnose();
 
 		if (onFinished)
@@ -410,6 +426,23 @@ namespace walldash
 			a.diagnosisText = std::format("Double jump, stick not past the dodge deadzone (stick {:.2f}, needs {:.2f})", a.stickSum, a.dodgeDeadzone);
 			return;
 		}
+		// Flip angle comes before timing: a good angle makes the timing forgiving,
+		// so a bad angle is the more useful thing to fix.
+		if (!a.flipAngleUndefined && !std::isnan(a.flipAngleDeg))
+		{
+			const char* problem = nullptr;
+			if (std::abs(a.flipAngleDeg) > 90.f) problem = "a backflip";
+			else if (a.flipAngleDeg < 0.f) problem = "aimed at the floor";
+			else if (a.flipAngleDeg < config.flipYellowMin) problem = "too forward";
+			else if (a.flipAngleDeg > config.flipYellowMax) problem = "too sideways";
+
+			if (problem)
+			{
+				a.diagnosis = Diagnosis::BadFlipAngle;
+				a.diagnosisText = std::format("Flip angle {:.0f} deg, {}", a.flipAngleDeg, problem);
+				return;
+			}
+		}
 		if (a.PressToPressMs() > config.latePressMs)
 		{
 			a.diagnosis = Diagnosis::TooLate;
@@ -421,21 +454,6 @@ namespace walldash
 			a.diagnosis = Diagnosis::HeldTooLong;
 			a.diagnosisText = std::format("First jump held {:.0f} ms", a.HoldMs());
 			return;
-		}
-		if (!a.flipAngleUndefined && !std::isnan(a.flipAngleDeg))
-		{
-			if (a.flipAngleDeg < 0.f && a.flipAngleDeg >= -90.f)
-			{
-				a.diagnosis = Diagnosis::BadFlipAngle;
-				a.diagnosisText = std::format("Flip angle {:.0f} deg, aimed at the floor", a.flipAngleDeg);
-				return;
-			}
-			if (std::abs(a.flipAngleDeg) > 90.f)
-			{
-				a.diagnosis = Diagnosis::BadFlipAngle;
-				a.diagnosisText = std::format("Flip angle {:.0f} deg, a backflip", a.flipAngleDeg);
-				return;
-			}
 		}
 		if (a.reattachTicks >= 0)
 		{

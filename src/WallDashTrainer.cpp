@@ -242,6 +242,15 @@ void WallDashTrainer::RegisterCvars()
 	RegisterConfigCvar("walldash_angle_min_right_z", "0.2", "Below this the car is too close to straight up or down the wall for a flip angle sign",
 		[](AttemptConfig& c, float v) { c.angleMinRightZ = v; });
 
+	RegisterConfigCvar("walldash_flip_yellow_min", "40", "Flip angle below this is too forward, a miss reason",
+		[](AttemptConfig& c, float v) { c.flipYellowMin = v; });
+	RegisterConfigCvar("walldash_flip_green_min", "50", "Flip angle from here is in the green band",
+		[](AttemptConfig& c, float v) { c.flipGreenMin = v; });
+	RegisterConfigCvar("walldash_flip_green_max", "80", "Flip angle up to here is in the green band",
+		[](AttemptConfig& c, float v) { c.flipGreenMax = v; });
+	RegisterConfigCvar("walldash_flip_yellow_max", "90", "Flip angle above this is too sideways, a miss reason",
+		[](AttemptConfig& c, float v) { c.flipYellowMax = v; });
+
 	overlay.RegisterCvars(cvarManager);
 	resettableCvars.insert(resettableCvars.end(), overlay.CvarNames().begin(), overlay.CvarNames().end());
 
