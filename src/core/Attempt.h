@@ -161,6 +161,12 @@ namespace walldash
 		float speedReattach = kNotMeasured;
 		float speedPeak = kNotMeasured;
 		float speedGain = kNotMeasured;
+		float speedEnd = kNotMeasured; // In the wall plane when the attempt ended, for makes and misses.
+
+		// Full car speed including movement off the wall, which is what the
+		// game's 2200 uu/s supersonic limit applies to.
+		float totalSpeedFirstPress = kNotMeasured;
+		float totalSpeedEnd = kNotMeasured;
 
 		float throttleFraction = 0.f;
 		float boostFraction = 0.f;

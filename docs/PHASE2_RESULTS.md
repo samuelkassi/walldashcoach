@@ -66,6 +66,23 @@ Not as far as this data shows. "Set" here means the stick was past the deadzone 
 
 Only 20 of 147 makes had the stick set at the first press. Setting it early did not help, and flicking late did better, though this may be because of other differences between those attempts. Being set at the second press is true by definition, because that stick position decides the flip.
 
+### Speed at the first press
+
+Checked later, on 388 attempts with the same filters across all sessions so far. Speed here is measured in the wall plane.
+
+| Speed at first press (uu/s) | Attempts | Make rate | At 50 degrees or more and 13 ticks or less | At 50 degrees or more and 14 ticks or more |
+|---|---|---|---|---|
+| Up to 1100 | 12 | 8% | 1 attempt | 1 attempt |
+| 1100 to 1300 | 62 | 45% | 71% of 21 | 44% of 16 |
+| 1300 to 1500 | 144 | 47% | 79% of 58 | 26% of 54 |
+| 1500 to 1700 | 88 | 66% | 93% of 41 | 50% of 34 |
+| 1700 to 1900 | 38 | 79% | 100% of 19 | 75% of 12 |
+| 1900 and up | 44 | 91% | 100% of 20 | 86% of 22 |
+
+Going fast seems to make the timing much more forgiving, which supports the player's feeling that being near supersonic makes dashes easier. Median speed gain on makes falls from 265 to 113 across the same range.
+
+The CSV now also has `speed_end`, `total_speed_first_press` and `total_speed_end`, because `speed_peak` is only filled in for makes.
+
 ### Caveats
 
 - The make rate rose from 64 of 132 in the first half to 83 of 132 in the second, so practice is mixed in with everything above. Phase 3 needs to account for this.

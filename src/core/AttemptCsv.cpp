@@ -60,7 +60,7 @@ namespace walldash
 			"stick_angle_first_press,stick_angle_release,stick_angle_second_press,stick_sum_first_press,stick_sum_release,stick_sum_second_press,"
 			"dodge_deadzone,controller_deadzone,"
 			"flip_angle_deg,flip_angle_undefined,travel_angle_deg,max_wall_distance,height_at_start,normal_x,normal_y,normal_z,"
-			"speed_first_press,speed_dodge,speed_reattach,speed_peak,speed_gain,"
+			"speed_first_press,speed_dodge,speed_reattach,speed_peak,speed_gain,speed_end,total_speed_first_press,total_speed_end,"
 			"throttle_fraction,boost_fraction,powerslide_fraction,air_roll_fraction,"
 			"first_touch_ticks,reattach_ticks,max_wheels,car_up_dot_normal,chain_id,chain_index,stick_path";
 	}
@@ -87,6 +87,7 @@ namespace walldash
 			<< Number(a.normal.x, 3) << ',' << Number(a.normal.y, 3) << ',' << Number(a.normal.z, 3) << ','
 			<< Number(a.speedFirstPress, 1) << ',' << Number(a.speedDodge, 1) << ',' << Number(a.speedReattach, 1) << ','
 			<< Number(a.speedPeak, 1) << ',' << Number(a.speedGain, 1) << ','
+			<< Number(a.speedEnd, 1) << ',' << Number(a.totalSpeedFirstPress, 1) << ',' << Number(a.totalSpeedEnd, 1) << ','
 			<< Number(a.throttleFraction, 3) << ',' << Number(a.boostFraction, 3) << ','
 			<< Number(a.powerslideFraction, 3) << ',' << Number(a.airRollFraction, 3) << ','
 			<< Ticks(a.firstTouchTicks) << ',' << Ticks(a.reattachTicks) << ',' << a.maxWheels << ','

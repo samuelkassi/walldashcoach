@@ -224,6 +224,7 @@ namespace walldash
 
 		startPos = sample.pos;
 		attempt.speedFirstPress = SpeedInWallPlane(sample);
+		attempt.totalSpeedFirstPress = Length(sample.vel);
 		const Vec3 inPlane = sample.vel - attempt.normal * Dot(sample.vel, attempt.normal);
 		const float speed = Length(inPlane);
 		if (speed > 1.f)
@@ -368,6 +369,8 @@ namespace walldash
 		}
 		if (attempt.make)
 			attempt.speedGain = attempt.speedPeak - attempt.speedFirstPress;
+		attempt.speedEnd = SpeedInWallPlane(last);
+		attempt.totalSpeedEnd = Length(last.vel);
 
 		// The path has one point per tick from the first press, so a timing in
 		// ticks is also its index. It stops at the dodge.
