@@ -85,14 +85,14 @@ namespace
 	}
 }
 
-void Overlay::AddPanel(const std::shared_ptr<CVarManagerWrapper>& cvarManager, const std::string& id, const std::string& label, float x, float y)
+void Overlay::AddPanel(const std::shared_ptr<CVarManagerWrapper>& cvarManager, const std::string& id, const std::string& label, float x, float y, bool onByDefault)
 {
 	OverlayPanel panel;
 	panel.id = id;
 	panel.label = label;
 	const std::string prefix = "walldash_panel_" + id;
 
-	cvarManager->registerCvar(prefix + "_on", "1", label + ": show this panel", true, true, 0, true, 1).bindTo(panel.on);
+	cvarManager->registerCvar(prefix + "_on", onByDefault ? "1" : "0", label + ": show this panel", true, true, 0, true, 1).bindTo(panel.on);
 	cvarManager->registerCvar(prefix + "_x", std::to_string(x), label + ": horizontal position, as a fraction of the screen", true, true, 0, true, 1).bindTo(panel.x);
 	cvarManager->registerCvar(prefix + "_y", std::to_string(y), label + ": vertical position, as a fraction of the screen", true, true, 0, true, 1).bindTo(panel.y);
 	cvarManager->registerCvar(prefix + "_size", "1", label + ": size", true, true, 0.25f, true, 3).bindTo(panel.size);
@@ -122,16 +122,19 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	cvarNames.push_back("walldash_speed_red_below");
 
 	// Top of the screen for timing, bottom for the rest, so the car stays visible.
-	AddPanel(cvarManager, "bars", "Timing bars", 0.34f, 0.015f);
-	AddPanel(cvarManager, "verdict", "Verdict", 0.34f, 0.19f);
-	AddPanel(cvarManager, "surface", "Surface note", 0.34f, 0.25f);
-	AddPanel(cvarManager, "stick", "Stick display", 0.26f, 0.73f);
-	AddPanel(cvarManager, "speed", "Speed gain", 0.42f, 0.76f);
-	AddPanel(cvarManager, "distance", "Wall distance", 0.42f, 0.84f);
-	AddPanel(cvarManager, "stats", "Session stats", 0.42f, 0.87f);
-	AddPanel(cvarManager, "chain", "Chain counter", 0.64f, 0.76f);
-	AddPanel(cvarManager, "speedloss", "Speed lost between dashes", 0.64f, 0.80f);
-	AddPanel(cvarManager, "chainsample", "Chain sample counter", 0.64f, 0.83f);
+	// The default view is kept simple, and the rest can be turned on in the settings.
+	AddPanel(cvarManager, "bars", "Timing bars", 0.34f, 0.015f, true);
+	AddPanel(cvarManager, "verdict", "Verdict", 0.34f, 0.19f, true);
+	AddPanel(cvarManager, "surface", "Surface note", 0.34f, 0.25f, false);
+	AddPanel(cvarManager, "stick", "Stick display", 0.26f, 0.73f, true);
+	AddPanel(cvarManager, "speed", "Speed gain", 0.42f, 0.76f, true);
+	AddPanel(cvarManager, "distance", "Wall distance", 0.42f, 0.84f, false);
+	AddPanel(cvarManager, "stats", "Session stats", 0.42f, 0.87f, false);
+
+	// These also need their feature turned on, so they are ready when it is.
+	AddPanel(cvarManager, "chain", "Chain counter", 0.64f, 0.76f, true);
+	AddPanel(cvarManager, "speedloss", "Speed lost between dashes", 0.64f, 0.80f, true);
+	AddPanel(cvarManager, "chainsample", "Chain sample counter", 0.64f, 0.83f, true);
 }
 
 void Overlay::Draw(CanvasWrapper& canvas, const OverlayData& data)

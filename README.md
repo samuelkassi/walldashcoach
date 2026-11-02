@@ -12,6 +12,8 @@ It trains the controlled two-press method: a short first jump off the wall, a fl
 
 ## Reading the overlay
 
+The default view shows the timing bars, the verdict, the stick display and speed gain. Session stats, distance from the wall and surface notes are off until you turn them on under Overlay panels in the settings window.
+
 **At the top:**
 
 - **Press to press:** time from the first jump press to the second. Red on the left means too early, because the second press does nothing until the wheels leave the wall, about 58 ms after the first jump on a flat wall. Green and yellow follow, then red for too late. The limits move with your speed at the first press, because going faster is more forgiving.
@@ -23,8 +25,9 @@ It trains the controlled two-press method: a short first jump off the wall, a fl
 
 - **Stick display:** your stick's path from the first press to the flip, one dot per tick, so widely spaced dots mean a fast flick. The coloured rim marks good flip angles for the wall you are on. The line shows the direction you actually flipped, and the yellow diamond is your dodge deadzone. The game adds up pitch, yaw and roll to compare against the deadzone, which is why it is a diamond rather than a circle.
 - **Speed gain:** what the dash gained or lost, with your speed before and after.
-- **Max distance from the wall.**
-- **Session stats:** makes and attempts, split by wall. Flat walls, curves and corners, and slowed-down play are counted separately.
+- **Max distance from the wall** (optional).
+- **Session stats** (optional): makes and attempts, split by wall. Flat walls, curves and corners, and slowed-down play are counted separately.
+- **Surface note** (optional, at the top): shows when an attempt on a curve or corner is logged separately.
 
 Three greens almost always means a make. If you are missing, start with press to press and flip angle, as those matter most. Going faster helps too.
 

@@ -53,7 +53,7 @@ private:
 		LinearColor color;
 	};
 
-	void AddPanel(const std::shared_ptr<CVarManagerWrapper>& cvarManager, const std::string& id, const std::string& label, float x, float y);
+	void AddPanel(const std::shared_ptr<CVarManagerWrapper>& cvarManager, const std::string& id, const std::string& label, float x, float y, bool onByDefault);
 
 	void DrawBars(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 	void DrawVerdict(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
