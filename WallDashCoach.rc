@@ -17,11 +17,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "WallDash Trainer BakkesMod plugin"
+            VALUE "FileDescription", "Wall Dash Coach BakkesMod plugin"
             VALUE "FileVersion", stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD)
-            VALUE "InternalName", "WallDashTrainer.dll"
-            VALUE "OriginalFilename", "WallDashTrainer.dll"
-            VALUE "ProductName", "WallDash Trainer"
+            VALUE "InternalName", "WallDashCoach.dll"
+            VALUE "OriginalFilename", "WallDashCoach.dll"
+            VALUE "ProductName", "Wall Dash Coach"
             VALUE "ProductVersion", stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD)
         END
     END

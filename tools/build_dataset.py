@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pandas as pd
 
-RAW = os.path.join(os.environ["APPDATA"], "bakkesmod", "bakkesmod", "data", "walldashtrainer", "attempts_*.csv")
+RAW = os.path.join(os.environ["APPDATA"], "bakkesmod", "bakkesmod", "data", "walldashcoach", "attempts_*.csv")
 
 frames = [pd.read_csv(f) for f in sorted(glob.glob(RAW))]
 d = pd.concat(frames, ignore_index=True)

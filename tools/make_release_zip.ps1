@@ -1,9 +1,9 @@
 # Builds the source zip for bakkesplugins.com from the latest commit, so only
 # tracked plugin files can end up in it. Run from the project root.
-param([string]$OutputPath = "build\release\WallDashTrainer-source.zip")
+param([string]$OutputPath = "build\release\WallDashCoach-source.zip")
 
 $paths = @(
-    "WallDashTrainer.sln", "WallDashTrainer.vcxproj", "WallDashTrainer.rc", "BakkesMod.props",
+    "WallDashCoach.sln", "WallDashCoach.vcxproj", "WallDashCoach.rc", "BakkesMod.props",
     "pch.h", "pch.cpp", "logging.h", "version.h", "update_version.ps1",
     "README.md", "LICENSE", "THIRD_PARTY.md", "src", "third_party"
 )

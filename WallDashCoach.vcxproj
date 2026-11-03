@@ -9,7 +9,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{9E02777B-B0FE-444A-A41F-BD2AB9720C84}</ProjectGuid>
-    <RootNamespace>WallDashTrainer</RootNamespace>
+    <RootNamespace>WallDashCoach</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -64,7 +64,7 @@
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\WallDashTrainer.cpp" />
+    <ClCompile Include="src\WallDashCoach.cpp" />
     <ClCompile Include="src\core\AttemptTracker.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -87,7 +87,7 @@
     <ClInclude Include="logging.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="version.h" />
-    <ClInclude Include="src\WallDashTrainer.h" />
+    <ClInclude Include="src\WallDashCoach.h" />
     <ClInclude Include="src\core\Attempt.h" />
     <ClInclude Include="src\core\AttemptTracker.h" />
     <ClInclude Include="src\core\AttemptCsv.h" />
@@ -97,7 +97,7 @@
     <ClInclude Include="third_party\imgui\imgui_internal.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="WallDashTrainer.rc" />
+    <ResourceCompile Include="WallDashCoach.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

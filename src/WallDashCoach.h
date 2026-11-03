@@ -20,7 +20,7 @@ constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_M
 // Connects the game to the attempt logic in src/core: reads the car on every
 // physics tick, forwards the jump events, and reports each finished attempt to
 // the overlay, the attempt CSV and optionally the console.
-class WallDashTrainer : public BakkesMod::Plugin::BakkesModPlugin, public BakkesMod::Plugin::PluginSettingsWindow
+class WallDashCoach : public BakkesMod::Plugin::BakkesModPlugin, public BakkesMod::Plugin::PluginSettingsWindow
 {
 public:
 	void onLoad() override;

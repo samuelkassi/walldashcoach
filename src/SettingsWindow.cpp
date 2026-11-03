@@ -1,22 +1,22 @@
 #include "pch.h"
-#include "WallDashTrainer.h"
+#include "WallDashCoach.h"
 
 #include "imgui.h"
 
 // RenderSettings runs on the render thread, so cvar changes are handed to the
 // game thread instead of being made here.
 
-std::string WallDashTrainer::GetPluginName()
+std::string WallDashCoach::GetPluginName()
 {
-	return "WallDash Trainer";
+	return "Wall Dash Coach";
 }
 
-void WallDashTrainer::SetImGuiContext(uintptr_t ctx)
+void WallDashCoach::SetImGuiContext(uintptr_t ctx)
 {
 	ImGui::SetCurrentContext(reinterpret_cast<ImGuiContext*>(ctx));
 }
 
-void WallDashTrainer::SettingsCheckbox(const char* label, const std::string& cvarName)
+void WallDashCoach::SettingsCheckbox(const char* label, const std::string& cvarName)
 {
 	CVarWrapper cvar = cvarManager->getCvar(cvarName);
 	if (cvar.IsNull())
@@ -27,7 +27,7 @@ void WallDashTrainer::SettingsCheckbox(const char* label, const std::string& cva
 		gameWrapper->Execute([cvar, value](GameWrapper*) mutable { cvar.setValue(value ? 1 : 0); });
 }
 
-void WallDashTrainer::SettingsSlider(const char* label, const std::string& cvarName, float min, float max, const char* format)
+void WallDashCoach::SettingsSlider(const char* label, const std::string& cvarName, float min, float max, const char* format)
 {
 	CVarWrapper cvar = cvarManager->getCvar(cvarName);
 	if (cvar.IsNull())
@@ -38,9 +38,9 @@ void WallDashTrainer::SettingsSlider(const char* label, const std::string& cvarN
 		gameWrapper->Execute([cvar, value](GameWrapper*) mutable { cvar.setValue(value); });
 }
 
-void WallDashTrainer::RenderSettings()
+void WallDashCoach::RenderSettings()
 {
-	ImGui::TextUnformatted("WallDash Trainer: measures wall dash attempts in freeplay.");
+	ImGui::TextUnformatted("Wall Dash Coach: measures wall dash attempts in freeplay.");
 	ImGui::Separator();
 
 	SettingsCheckbox("Show the overlay", "walldash_overlay_on");

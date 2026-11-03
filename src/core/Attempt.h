@@ -84,7 +84,7 @@ namespace walldash
 		float yellowMs; // Above this is too late. Equal to green means no yellow zone.
 	};
 
-	// Every value is configurable through a cvar. See WallDashTrainer::RegisterCvars.
+	// Every value is configurable through a cvar. See WallDashCoach::RegisterCvars.
 	struct AttemptConfig
 	{
 		int timeoutTicks = 120;

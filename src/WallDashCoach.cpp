@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "WallDashTrainer.h"
+#include "WallDashCoach.h"
 
 #include "bakkesmod/wrappers/includes.h"
 #include "bakkesmod/wrappers/Engine/EngineTAWrapper.h"
@@ -17,7 +17,7 @@
 #include <format>
 #include <sstream>
 
-BAKKESMOD_PLUGIN(WallDashTrainer, "WallDash Trainer", plugin_version, PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(WallDashCoach, "Wall Dash Coach", plugin_version, PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
@@ -31,6 +31,7 @@ namespace
 	constexpr int kTicksPerSecond = 120;
 	constexpr int kGameSpeedWindowTicks = 120;
 	constexpr double kGameSpeedMaxWindowMs = 10000.0; // Longer than this means the game was paused.
+	constexpr const char* kDataFolderName = "walldashcoach"; // Under the BakkesMod data folder.
 
 	struct CarAxes
 	{
@@ -119,7 +120,7 @@ namespace
 	}
 }
 
-void WallDashTrainer::onLoad()
+void WallDashCoach::onLoad()
 {
 	_globalCvarManager = cvarManager;
 
@@ -160,19 +161,19 @@ void WallDashTrainer::onLoad()
 
 	gameWrapper->RegisterDrawable([this](CanvasWrapper canvas) { RenderOverlay(canvas); });
 
-	LOG("WallDash Trainer {} loaded. Settings are in the F2 menu, under Plugins.", plugin_version);
+	LOG("Wall Dash Coach {} loaded. Settings are in the F2 menu, under Plugins.", plugin_version);
 }
 
-void WallDashTrainer::onUnload()
+void WallDashCoach::onUnload()
 {
 	gameWrapper->UnregisterDrawables();
 	CloseDebugLog();
 }
 
-void WallDashTrainer::ExportShareData()
+void WallDashCoach::ExportShareData()
 {
 	namespace fs = std::filesystem;
-	const fs::path folder = gameWrapper->GetDataFolder() / "walldashtrainer";
+	const fs::path folder = gameWrapper->GetDataFolder() / kDataFolderName;
 	const fs::path shareFolder = folder / "share";
 
 	std::error_code error;
@@ -185,7 +186,7 @@ void WallDashTrainer::ExportShareData()
 	}
 	if (error || sources.empty())
 	{
-		LOG("WallDash Trainer: no attempt files to export yet.");
+		LOG("Wall Dash Coach: no attempt files to export yet.");
 		return;
 	}
 	std::sort(sources.begin(), sources.end());
@@ -193,7 +194,7 @@ void WallDashTrainer::ExportShareData()
 	fs::create_directories(shareFolder, error);
 	if (error)
 	{
-		LOG("WallDash Trainer: could not create the share folder: {}", error.message());
+		LOG("Wall Dash Coach: could not create the share folder: {}", error.message());
 		return;
 	}
 
@@ -208,16 +209,16 @@ void WallDashTrainer::ExportShareData()
 			rows += walldash::AnonymizeAttemptCsv(in, out, sessions);
 	}
 
-	LOG("WallDash Trainer: wrote {} attempts, without timestamps, to {}", rows, shareFolder.string());
-	LOG("WallDash Trainer: nothing has been sent. Sharing these files is up to you, and the README explains how.");
+	LOG("Wall Dash Coach: wrote {} attempts, without timestamps, to {}", rows, shareFolder.string());
+	LOG("Wall Dash Coach: nothing has been sent. Sharing these files is up to you, and the README explains how.");
 }
 
-void WallDashTrainer::LoadChainSampleCounts()
+void WallDashCoach::LoadChainSampleCounts()
 {
 	namespace fs = std::filesystem;
 	std::error_code error;
 	chainSample = walldash::ChainSampleCounts{};
-	for (const fs::directory_entry& entry : fs::directory_iterator(gameWrapper->GetDataFolder() / "walldashtrainer", error))
+	for (const fs::directory_entry& entry : fs::directory_iterator(gameWrapper->GetDataFolder() / kDataFolderName, error))
 	{
 		if (entry.path().filename().string().starts_with("attempts_") && entry.path().extension() == ".csv")
 		{
@@ -227,7 +228,7 @@ void WallDashTrainer::LoadChainSampleCounts()
 	}
 }
 
-void WallDashTrainer::RenderOverlay(CanvasWrapper canvas)
+void WallDashCoach::RenderOverlay(CanvasWrapper canvas)
 {
 	if (!gameWrapper->IsInFreeplay() || gameWrapper->IsPaused())
 		return;
@@ -246,14 +247,14 @@ void WallDashTrainer::RenderOverlay(CanvasWrapper canvas)
 	overlay.Draw(canvas, data);
 }
 
-void WallDashTrainer::ResetSessionStats()
+void WallDashCoach::ResetSessionStats()
 {
 	stats = walldash::SessionStats{};
 	hasLastAttempt = false;
 	tracker.ResetChainRecords();
 }
 
-void WallDashTrainer::ResetSettingsToDefaults()
+void WallDashCoach::ResetSettingsToDefaults()
 {
 	for (const std::string& name : resettableCvars)
 	{
@@ -263,7 +264,7 @@ void WallDashTrainer::ResetSettingsToDefaults()
 	}
 }
 
-void WallDashTrainer::RegisterConfigCvar(const std::string& name, const std::string& defaultValue, const std::string& description,
+void WallDashCoach::RegisterConfigCvar(const std::string& name, const std::string& defaultValue, const std::string& description,
 	std::function<void(walldash::AttemptConfig&, float)> apply)
 {
 	CVarWrapper cvar = cvarManager->registerCvar(name, defaultValue, description);
@@ -278,7 +279,7 @@ void WallDashTrainer::RegisterConfigCvar(const std::string& name, const std::str
 	update(cvar.getFloatValue());
 }
 
-void WallDashTrainer::RegisterCvars()
+void WallDashCoach::RegisterCvars()
 {
 	using walldash::AttemptConfig;
 
@@ -358,14 +359,14 @@ void WallDashTrainer::RegisterCvars()
 		});
 }
 
-void WallDashTrainer::HookCarEvent(const std::string& eventName, const std::string& kind)
+void WallDashCoach::HookCarEvent(const std::string& eventName, const std::string& kind)
 {
 	eventCounts[kind] = 0;
 	gameWrapper->HookEventWithCaller<CarWrapper>(eventName,
 		[this, kind](CarWrapper car, void*, std::string) { OnCarEvent(car, kind); });
 }
 
-void WallDashTrainer::HookComponentEvent(const std::string& eventName, const std::string& kind)
+void WallDashCoach::HookComponentEvent(const std::string& eventName, const std::string& kind)
 {
 	eventCounts[kind] = 0;
 	gameWrapper->HookEventWithCaller<CarComponentWrapper>(eventName,
@@ -377,7 +378,7 @@ void WallDashTrainer::HookComponentEvent(const std::string& eventName, const std
 		});
 }
 
-bool WallDashTrainer::IsLocalCarInFreeplay(CarWrapper& car)
+bool WallDashCoach::IsLocalCarInFreeplay(CarWrapper& car)
 {
 	if (car.IsNull() || !gameWrapper->IsInFreeplay())
 		return false;
@@ -385,7 +386,7 @@ bool WallDashTrainer::IsLocalCarInFreeplay(CarWrapper& car)
 	return !local.IsNull() && local.memory_address == car.memory_address;
 }
 
-float WallDashTrainer::GetWorldTime()
+float WallDashCoach::GetWorldTime()
 {
 	ServerWrapper server = gameWrapper->GetCurrentGameState();
 	if (!server)
@@ -396,7 +397,7 @@ float WallDashTrainer::GetWorldTime()
 	return world.GetTimeSeconds();
 }
 
-void WallDashTrainer::UpdateGameSpeed()
+void WallDashCoach::UpdateGameSpeed()
 {
 	if (++speedWindowTicks < kGameSpeedWindowTicks)
 		return;
@@ -412,7 +413,7 @@ void WallDashTrainer::UpdateGameSpeed()
 	speedWindowStart = now;
 }
 
-walldash::TickSample WallDashTrainer::BuildSample(CarWrapper& car, const ControllerInput& input, int frame)
+walldash::TickSample WallDashCoach::BuildSample(CarWrapper& car, const ControllerInput& input, int frame)
 {
 	const CarAxes axes = AxesFromRotator(car.GetRotation());
 
@@ -439,7 +440,7 @@ walldash::TickSample WallDashTrainer::BuildSample(CarWrapper& car, const Control
 	return s;
 }
 
-void WallDashTrainer::OnVehicleInput(CarWrapper car, const ControllerInput& input)
+void WallDashCoach::OnVehicleInput(CarWrapper car, const ControllerInput& input)
 {
 	if (!IsLocalCarInFreeplay(car))
 		return;
@@ -460,7 +461,7 @@ void WallDashTrainer::OnVehicleInput(CarWrapper car, const ControllerInput& inpu
 		WriteDebugRow("tick", car, input, now);
 }
 
-void WallDashTrainer::OnCarEvent(CarWrapper car, const std::string& kind)
+void WallDashCoach::OnCarEvent(CarWrapper car, const std::string& kind)
 {
 	if (!IsLocalCarInFreeplay(car))
 		return;
@@ -472,7 +473,7 @@ void WallDashTrainer::OnCarEvent(CarWrapper car, const std::string& kind)
 		WriteDebugRow(kind, car, car.GetInput(), GetWorldTime());
 }
 
-void WallDashTrainer::ForwardEvent(const std::string& kind)
+void WallDashCoach::ForwardEvent(const std::string& kind)
 {
 	if (kind == "jump_pressed") tracker.OnJumpPressed();
 	else if (kind == "jump_released") tracker.OnJumpReleased();
@@ -481,7 +482,7 @@ void WallDashTrainer::ForwardEvent(const std::string& kind)
 	else if (kind == "dodge_begin") tracker.OnDodgeBegin();
 }
 
-void WallDashTrainer::OnAttemptFinished(const AttemptResult& attempt)
+void WallDashCoach::OnAttemptFinished(const AttemptResult& attempt)
 {
 	attemptCount++;
 	stats.Add(attempt);
@@ -504,7 +505,7 @@ void WallDashTrainer::OnAttemptFinished(const AttemptResult& attempt)
 	}
 }
 
-std::filesystem::path WallDashTrainer::AttemptFilePath()
+std::filesystem::path WallDashCoach::AttemptFilePath()
 {
 	namespace fs = std::filesystem;
 
@@ -512,12 +513,12 @@ std::filesystem::path WallDashTrainer::AttemptFilePath()
 	if (date == attemptFileDate && !attemptFile.empty())
 		return attemptFile;
 
-	const fs::path folder = gameWrapper->GetDataFolder() / "walldashtrainer";
+	const fs::path folder = gameWrapper->GetDataFolder() / kDataFolderName;
 	std::error_code error;
 	fs::create_directories(folder, error);
 	if (error)
 	{
-		LOG("WallDash Trainer: could not create the data folder: {}", error.message());
+		LOG("Wall Dash Coach: could not create the data folder: {}", error.message());
 		return {};
 	}
 
@@ -540,7 +541,7 @@ std::filesystem::path WallDashTrainer::AttemptFilePath()
 	return attemptFile;
 }
 
-void WallDashTrainer::WriteAttemptRow(const AttemptResult& attempt)
+void WallDashCoach::WriteAttemptRow(const AttemptResult& attempt)
 {
 	const std::filesystem::path path = AttemptFilePath();
 	if (path.empty())
@@ -551,7 +552,7 @@ void WallDashTrainer::WriteAttemptRow(const AttemptResult& attempt)
 	std::ofstream file(path, std::ios::app);
 	if (!file.is_open())
 	{
-		LOG("WallDash Trainer: could not write to {}", path.string());
+		LOG("Wall Dash Coach: could not write to {}", path.string());
 		return;
 	}
 	if (isNew)
@@ -561,7 +562,7 @@ void WallDashTrainer::WriteAttemptRow(const AttemptResult& attempt)
 	file << walldash::AttemptCsvRow(attempt, timestamp, sessionId, attemptCount) << '\n';
 }
 
-void WallDashTrainer::RefreshSettings(CarWrapper& car, float now)
+void WallDashCoach::RefreshSettings(CarWrapper& car, float now)
 {
 	// A time jump backwards means a new freeplay session, so refresh then too.
 	if (now < settings.nextRefreshTime && settings.nextRefreshTime - now <= 1.f)
@@ -580,7 +581,7 @@ void WallDashTrainer::RefreshSettings(CarWrapper& car, float now)
 	settings.componentDodgeThreshold = dodge.IsNull() ? -1.f : dodge.GetDodgeInputThreshold();
 }
 
-void WallDashTrainer::WriteDebugRow(const std::string& kind, CarWrapper& car, const ControllerInput& input, float now)
+void WallDashCoach::WriteDebugRow(const std::string& kind, CarWrapper& car, const ControllerInput& input, float now)
 {
 	if (!debugLogFile.is_open() && !OpenDebugLog())
 		return;
@@ -646,18 +647,18 @@ void WallDashTrainer::WriteDebugRow(const std::string& kind, CarWrapper& car, co
 	}
 }
 
-bool WallDashTrainer::OpenDebugLog()
+bool WallDashCoach::OpenDebugLog()
 {
 	if (debugLogFile.is_open())
 		return true;
 
 	namespace fs = std::filesystem;
-	const fs::path folder = gameWrapper->GetDataFolder() / "walldashtrainer";
+	const fs::path folder = gameWrapper->GetDataFolder() / kDataFolderName;
 	std::error_code error;
 	fs::create_directories(folder, error);
 	if (error)
 	{
-		LOG("WallDash Trainer: could not create the log folder: {}", error.message());
+		LOG("Wall Dash Coach: could not create the log folder: {}", error.message());
 		*debugLogEnabled = false;
 		return false;
 	}
@@ -666,7 +667,7 @@ bool WallDashTrainer::OpenDebugLog()
 	debugLogFile.open(path, std::ios::out | std::ios::trunc);
 	if (!debugLogFile.is_open())
 	{
-		LOG("WallDash Trainer: could not open the log file: {}", path.string());
+		LOG("Wall Dash Coach: could not open the log file: {}", path.string());
 		*debugLogEnabled = false;
 		return false;
 	}
@@ -676,28 +677,28 @@ bool WallDashTrainer::OpenDebugLog()
 	nextFlushTime = -1.f;
 	debugLogFile << DebugLogHeader() << '\n';
 	debugLogFile.flush();
-	LOG("WallDash Trainer: logging to {}", debugLogPath);
+	LOG("Wall Dash Coach: logging to {}", debugLogPath);
 	return true;
 }
 
-void WallDashTrainer::CloseDebugLog()
+void WallDashCoach::CloseDebugLog()
 {
 	if (!debugLogFile.is_open())
 		return;
 	debugLogFile.flush();
 	debugLogFile.close();
-	LOG("WallDash Trainer: log closed, {} rows in {}", debugRowsWritten, debugLogPath);
+	LOG("Wall Dash Coach: log closed, {} rows in {}", debugRowsWritten, debugLogPath);
 }
 
-void WallDashTrainer::PrintStatus()
+void WallDashCoach::PrintStatus()
 {
-	LOG("WallDash Trainer: session {}, {} attempts, game speed {:.2f}", sessionId, attemptCount, gameSpeed);
-	LOG("WallDash Trainer: {}", stats.Summary(overlay.StatsByWall()));
-	LOG("WallDash Trainer: attempt file: {}", attemptFile.empty() ? "none yet" : attemptFile.string());
-	LOG("WallDash Trainer: debug log {}, file: {}, rows: {}", *debugLogEnabled ? "on" : "off", debugLogPath.empty() ? "none" : debugLogPath, debugRowsWritten);
-	LOG("WallDash Trainer: SetVehicleInput calls on the latest physics frame: {}", callsThisFrame);
+	LOG("Wall Dash Coach: session {}, {} attempts, game speed {:.2f}", sessionId, attemptCount, gameSpeed);
+	LOG("Wall Dash Coach: {}", stats.Summary(overlay.StatsByWall()));
+	LOG("Wall Dash Coach: attempt file: {}", attemptFile.empty() ? "none yet" : attemptFile.string());
+	LOG("Wall Dash Coach: debug log {}, file: {}, rows: {}", *debugLogEnabled ? "on" : "off", debugLogPath.empty() ? "none" : debugLogPath, debugRowsWritten);
+	LOG("Wall Dash Coach: SetVehicleInput calls on the latest physics frame: {}", callsThisFrame);
 	for (const auto& [kind, count] : eventCounts)
 	{
-		LOG("WallDash Trainer:   {}: {}", kind, count);
+		LOG("Wall Dash Coach:   {}: {}", kind, count);
 	}
 }
