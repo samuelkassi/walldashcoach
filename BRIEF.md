@@ -1,4 +1,4 @@
-# Brief: WallDash Trainer (BakkesMod plugin)
+# Brief: Wall Dash Coach (BakkesMod plugin)
 
 This is a handover for Claude Code. Read all of it before writing any code, then propose a plan for Phase 0 only and wait for me.
 
@@ -112,7 +112,7 @@ Not in v1: saving / replaying attempts.
 
 ## 8. Logging
 
-- One CSV row per attempt, in the BakkesMod data folder (`gameWrapper->GetDataFolder()` / `walldashtrainer/attempts_YYYY-MM-DD.csv`). Columns: timestamp, session id, make/miss, diagnosis code, surface, every measurement in section 4 (ticks and ms), stick at second press, deadzone settings, chain id/index, spam flag.
+- One CSV row per attempt, in the BakkesMod data folder (`gameWrapper->GetDataFolder()` / `walldashcoach/attempts_YYYY-MM-DD.csv`). Columns: timestamp, session id, make/miss, diagnosis code, surface, every measurement in section 4 (ticks and ms), stick at second press, deadzone settings, chain id/index, spam flag.
 - A per-tick debug log behind a cvar (default off) for Phases 0 and 3.
 - The CSV must be easy to analyse in pandas: one header, no units in values, snake_case names.
 

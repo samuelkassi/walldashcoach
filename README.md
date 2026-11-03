@@ -1,4 +1,4 @@
-# WallDash Trainer
+# Wall Dash Coach
 
 A BakkesMod plugin for Rocket League that measures your wall dash attempts in freeplay and tells you why each one worked or failed.
 
@@ -10,7 +10,7 @@ It trains the controlled two-press method: a short first jump off the wall, a fl
 
 1. Install it from bakkesplugins.com, or build it from source as described below.
 2. Go into freeplay, drive up a wall and try a wall dash.
-3. Read the overlay. Press F2 and find WallDash Trainer under Plugins to move panels or change settings.
+3. Read the overlay. Press F2 and find Wall Dash Coach under Plugins to move panels or change settings.
 
 ## Reading the overlay
 
@@ -59,7 +59,7 @@ Everything can be changed in the settings window, including every band and each 
 
 ## Your data
 
-Each attempt is saved as one row in `<BakkesMod data folder>/walldashtrainer/attempts_YYYY-MM-DD.csv`, which is easy to open in a spreadsheet or pandas. These files stay on your PC. **The plugin sends nothing anywhere.**
+Each attempt is saved as one row in `<BakkesMod data folder>/walldashcoach/attempts_YYYY-MM-DD.csv`, which is easy to open in a spreadsheet or pandas. These files stay on your PC. **The plugin sends nothing anywhere.**
 
 ### Sharing your data
 
@@ -69,7 +69,7 @@ This is optional and not in the settings window. If you would like to share your
 walldash_export_share_data
 ```
 
-It writes copies of your attempt files to `<BakkesMod data folder>/walldashtrainer/share/`, with timestamps removed and session ids replaced by plain numbers. They still contain your inputs, car movement and controller deadzones. Sending them is entirely up to you. To share them or suggest tighter bands, message `samuelkassi` on Discord.
+It writes copies of your attempt files to `<BakkesMod data folder>/walldashcoach/share/`, with timestamps removed and session ids replaced by plain numbers. They still contain your inputs, car movement and controller deadzones. Sending them is entirely up to you. To share them or suggest tighter bands, message `samuelkassi` on Discord.
 
 **What happens to shared data:** please send the exported copies, not your original files. The only way they are used is to inform the plugin's default values for a successful wall dash, such as timing, speed and flip angle. They will not be published. I keep them until I have adjusted the defaults or for one month after you send them, whichever comes first, and then delete my copies.
 
@@ -89,10 +89,10 @@ Some findings so far: a flip angle of 50 to 60 degrees is the best all-round tar
 You need Windows, BakkesMod, and Visual Studio 2022 or its Build Tools with the v143 C++ toolset and a Windows 11 SDK.
 
 ```
-msbuild WallDashTrainer.sln -p:Configuration=Release -p:Platform=x64
+msbuild WallDashCoach.sln -p:Configuration=Release -p:Platform=x64
 ```
 
-The build finds the BakkesMod SDK through the registry key BakkesMod creates when installed. The post-build step copies the plugin into your BakkesMod plugins folder. Then press F6 in game and run `plugin load walldashtrainer`.
+The build finds the BakkesMod SDK through the registry key BakkesMod creates when installed. The post-build step copies the plugin into your BakkesMod plugins folder. Then press F6 in game and run `plugin load walldashcoach`.
 
 There are no external DLLs or downloads. A pre-build step, `update_version.ps1`, increases the build number in `version.h`.
 
@@ -108,6 +108,10 @@ build\tests\ReplayLogs.exe tests\data\debug_ticks_50pct.csv --speed 0.5 --expect
 ## How it was built
 
 Development results are in [`docs/`](docs/): [Phase 0](docs/PHASE0_RESULTS.md) proved the measurements, [Phase 1](docs/PHASE1_RESULTS.md) added attempts, [Phase 2](docs/PHASE2_RESULTS.md) added the overlay, [Phase 3](docs/CALIBRATION.md) set the bands from data, and [Phase 4](docs/PHASE4_RESULTS.md) added chains.
+
+## Credits
+
+Inspired by SpeedFlipTrainer, Fast Aerial Trainer, and ababab's earlier Wall Dash Trainer (https://bakkesplugins.com/plugin/556), which times your two jump presses.
 
 ## Licence
 
