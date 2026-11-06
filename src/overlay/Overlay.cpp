@@ -130,7 +130,7 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	AddPanel(cvarManager, "speed", "Speed gain", 0.42f, 0.76f, true);
 	AddPanel(cvarManager, "distance", "Wall distance", 0.42f, 0.84f, false);
 	AddPanel(cvarManager, "stats", "Session stats", 0.42f, 0.87f, false);
-	AddPanel(cvarManager, "paused", "Logging paused note", 0.34f, 0.28f, true);
+	AddPanel(cvarManager, "paused", "Logging paused note", 0.01f, 0.01f, true);
 
 	// These also need their feature turned on, so they are ready when it is.
 	AddPanel(cvarManager, "chain", "Chain counter", 0.64f, 0.76f, true);
