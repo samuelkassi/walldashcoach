@@ -39,6 +39,8 @@ private:
 	void ExportShareData();
 	void LoadChainSampleCounts();
 	void RenderOverlay(CanvasWrapper canvas);
+	walldash::StatsOptions CurrentStatsOptions() const;
+	bool ShouldLogAttempt(const walldash::AttemptResult& attempt) const;
 
 	// Deadzone and sensitivity values. They rarely change, so they are read
 	// once a second instead of on every tick.
@@ -89,6 +91,14 @@ private:
 	std::shared_ptr<bool> debugLogEnabled = std::make_shared<bool>(false);
 	std::shared_ptr<bool> attemptLogEnabled = std::make_shared<bool>(true);
 	std::shared_ptr<bool> consoleLogEnabled = std::make_shared<bool>(false);
+	std::shared_ptr<bool> loggingPaused = std::make_shared<bool>(false);
+
+	// Dashes faster than this at the first press can be split out of the
+	// session stats, left out of them, or left out of the attempt CSV.
+	std::shared_ptr<float> fastSpeed = std::make_shared<float>(2100.f);
+	std::shared_ptr<int> fastStatsMode = std::make_shared<int>(0); // A walldash::FastDashMode.
+	std::shared_ptr<bool> fastSkipCsv = std::make_shared<bool>(false);
+	std::shared_ptr<bool> statsShowSpeedGain = std::make_shared<bool>(true);
 
 	std::string sessionId;
 	int attemptCount = 0;
@@ -109,6 +119,7 @@ private:
 	float gameSpeed = 1.f;
 	int speedWindowTicks = 0;
 	std::chrono::steady_clock::time_point speedWindowStart;
+	std::chrono::steady_clock::time_point lastTickTime;
 
 	CachedSettings settings;
 

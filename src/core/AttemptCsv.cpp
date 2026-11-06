@@ -66,9 +66,15 @@ namespace walldash
 			return out;
 		}
 
-		std::string BucketText(const SessionStats::Bucket& bucket)
+		std::string BucketText(const SessionStats::Bucket& bucket, bool showSpeedGain)
 		{
-			return std::format("{}/{} ({:.0f}%), avg {:.0f} ms", bucket.makes, bucket.attempts, bucket.MakePercent(), bucket.AveragePressToPressMs());
+			std::string text = std::format("{}/{} ({:.2f}%), avg {:.0f} ms", bucket.makes, bucket.attempts, bucket.MakePercent(), bucket.AveragePressToPressMs());
+			if (showSpeedGain)
+			{
+				const float gain = bucket.AverageSpeedGain();
+				text += std::isnan(gain) ? ", avg gain none" : std::format(", avg gain {:+.0f} uu/s", gain);
+			}
+			return text;
 		}
 	}
 
@@ -224,58 +230,93 @@ namespace walldash
 		return rows;
 	}
 
+	bool IsFastDash(const AttemptResult& a, float limit)
+	{
+		return !std::isnan(a.speedFirstPress) && a.speedFirstPress > limit;
+	}
+
 	void SessionStats::Add(const AttemptResult& a)
 	{
 		if (a.spamInput)
 			return;
 
-		const bool flat = a.surface == Surface::SideWall || a.surface == Surface::BackWall;
-		const bool normalSpeed = a.gameSpeed >= kNormalSpeedMin;
-		WallPair& pair = normalSpeed ? (flat ? flatNormal : otherNormal) : (flat ? flatSlow : otherSlow);
-		Bucket& bucket = a.wallSide == WallSide::Right ? pair.right : pair.left;
-
-		bucket.attempts++;
-		if (a.make)
-		{
-			bucket.makes++;
-			bucket.pressToPressTotalMs += a.PressToPressMs();
-		}
+		Entry entry;
+		entry.make = a.make;
+		entry.flat = a.surface == Surface::SideWall || a.surface == Surface::BackWall;
+		entry.slow = a.gameSpeed < kNormalSpeedMin;
+		entry.wallSide = a.wallSide;
+		entry.speedFirstPress = a.speedFirstPress;
+		entry.pressToPressMs = a.PressToPressMs();
+		entry.speedGain = a.speedGain;
+		entries.push_back(entry);
 	}
 
-	std::vector<std::string> SessionStats::Lines(bool splitByWall) const
+	std::vector<std::string> SessionStats::Lines(const StatsOptions& options) const
 	{
-		std::vector<std::string> lines;
+		// Indexed by [slow][fast][curve or corner][right wall].
+		Bucket buckets[2][2][2][2] = {};
+		for (const Entry& e : entries)
+		{
+			const bool fast = !std::isnan(e.speedFirstPress) && e.speedFirstPress > options.fastSpeed;
+			if (fast && options.fastMode == FastDashMode::Exclude)
+				continue;
+			const bool separate = fast && options.fastMode == FastDashMode::Separate;
 
-		const auto addPair = [&](const char* label, const WallPair& pair, bool alwaysShow)
+			Bucket& bucket = buckets[e.slow][separate][!e.flat][e.wallSide == WallSide::Right];
+			bucket.attempts++;
+			if (!e.make)
+				continue;
+			bucket.makes++;
+			if (!std::isnan(e.pressToPressMs))
+				bucket.pressToPressTotalMs += e.pressToPressMs;
+			if (!std::isnan(e.speedGain))
 			{
-				if (splitByWall)
+				bucket.speedGainTotal += e.speedGain;
+				bucket.speedGainCount++;
+			}
+		}
+
+		std::vector<std::string> lines;
+		const auto addPair = [&](const std::string& label, const Bucket& left, const Bucket& right, bool alwaysShow)
+			{
+				if (options.splitByWall)
 				{
-					if (alwaysShow || pair.left.attempts > 0)
-						lines.push_back(std::format("{} left {}", label, BucketText(pair.left)));
-					if (alwaysShow || pair.right.attempts > 0)
-						lines.push_back(std::format("{} right {}", label, BucketText(pair.right)));
+					if (alwaysShow || left.attempts > 0)
+						lines.push_back(std::format("{} left {}", label, BucketText(left, options.showSpeedGain)));
+					if (alwaysShow || right.attempts > 0)
+						lines.push_back(std::format("{} right {}", label, BucketText(right, options.showSpeedGain)));
 					return;
 				}
 
 				Bucket both;
-				both.makes = pair.left.makes + pair.right.makes;
-				both.attempts = pair.left.attempts + pair.right.attempts;
-				both.pressToPressTotalMs = pair.left.pressToPressTotalMs + pair.right.pressToPressTotalMs;
+				both.makes = left.makes + right.makes;
+				both.attempts = left.attempts + right.attempts;
+				both.pressToPressTotalMs = left.pressToPressTotalMs + right.pressToPressTotalMs;
+				both.speedGainTotal = left.speedGainTotal + right.speedGainTotal;
+				both.speedGainCount = left.speedGainCount + right.speedGainCount;
 				if (alwaysShow || both.attempts > 0)
-					lines.push_back(std::format("{} {}", label, BucketText(both)));
+					lines.push_back(std::format("{} {}", label, BucketText(both, options.showSpeedGain)));
 			};
 
-		addPair("Flat", flatNormal, true);
-		addPair("Curves and corners", otherNormal, false);
-		addPair("Slowed flat", flatSlow, false);
-		addPair("Slowed curves and corners", otherSlow, false);
+		const std::string fastSuffix = std::format(" over {:.0f} uu/s", options.fastSpeed);
+		for (int slow = 0; slow < 2; slow++)
+		{
+			for (int fast = 0; fast < 2; fast++)
+			{
+				const std::string prefix = slow ? "Slowed " : "";
+				const std::string suffix = fast ? fastSuffix : "";
+				const auto& group = buckets[slow][fast];
+				addPair(prefix + (slow ? "flat" : "Flat") + suffix, group[0][0], group[0][1], !slow && !fast);
+				addPair(prefix + (slow ? "curves and corners" : "Curves and corners") + suffix, group[1][0], group[1][1], false);
+			}
+		}
 		return lines;
 	}
 
-	std::string SessionStats::Summary(bool splitByWall) const
+	std::string SessionStats::Summary(const StatsOptions& options) const
 	{
 		std::string out;
-		for (const std::string& line : Lines(splitByWall))
+		for (const std::string& line : Lines(options))
 		{
 			if (!out.empty())
 				out += " | ";

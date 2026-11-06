@@ -43,8 +43,10 @@ void WallDashCoach::RenderSettings()
 	ImGui::TextUnformatted("Wall Dash Coach: measures wall dash attempts in freeplay.");
 	ImGui::Separator();
 
-	SettingsCheckbox("Show the overlay", "walldash_overlay_on");
+	SettingsCheckbox("Show the overlay (while hidden, attempts are not counted or saved)", "walldash_overlay_on");
+	SettingsCheckbox("Pause logging (attempts are not saved until you untick this)", "walldash_logging_paused");
 	SettingsCheckbox("Split session stats by wall", "walldash_stats_by_wall");
+	SettingsCheckbox("Show average speed gain in session stats", "walldash_stats_speed_gain");
 
 	if (ImGui::CollapsingHeader("Overlay panels"))
 	{
@@ -69,6 +71,28 @@ void WallDashCoach::RenderSettings()
 		ImGui::TextUnformatted("Chain dashes are always logged. This shows the chain counter and speed lost between dashes on the overlay.");
 		SettingsCheckbox("Show chain dashes", "walldash_chains_on");
 		SettingsSlider("Longest gap from reattaching to the next jump (s)", "walldash_chain_gap_s", 0.1f, 3.f, "%.2f");
+	}
+
+	if (ImGui::CollapsingHeader("Fast dashes"))
+	{
+		ImGui::TextUnformatted("A dash is fast when its speed along the wall at the first press is above this.");
+		SettingsSlider("Fast above (uu/s)", "walldash_fast_speed", 0.f, 2300.f, "%.0f");
+
+		CVarWrapper mode = cvarManager->getCvar("walldash_fast_stats_mode");
+		if (!mode.IsNull())
+		{
+			ImGui::TextUnformatted("In the session stats:");
+			const int current = mode.getIntValue();
+			static const char* const labels[] = { "Include", "Show separately", "Leave out" };
+			for (int i = 0; i < 3; i++)
+			{
+				if (i > 0)
+					ImGui::SameLine();
+				if (ImGui::RadioButton(labels[i], current == i))
+					gameWrapper->Execute([mode, i](GameWrapper*) mutable { mode.setValue(i); });
+			}
+		}
+		SettingsCheckbox("Leave fast dashes out of the attempt CSV", "walldash_fast_skip_csv");
 	}
 
 	if (ImGui::CollapsingHeader("Press to press bands"))

@@ -31,6 +31,9 @@ namespace
 	constexpr int kTicksPerSecond = 120;
 	constexpr int kGameSpeedWindowTicks = 120;
 	constexpr double kGameSpeedMaxWindowMs = 10000.0; // Longer than this means the game was paused.
+	// A longer real time gap between two physics ticks means the game was paused
+	// or stalled. At 5% speed a tick is 167 ms apart, so slow motion stays under it.
+	constexpr double kPauseGapMs = 400.0;
 	constexpr const char* kDataFolderName = "walldashcoach"; // Under the BakkesMod data folder.
 
 	struct CarAxes
@@ -126,6 +129,7 @@ void WallDashCoach::onLoad()
 
 	sessionId = std::format("{:%Y%m%d_%H%M%S}", LocalNow());
 	speedWindowStart = std::chrono::steady_clock::now();
+	lastTickTime = speedWindowStart;
 
 	RegisterCvars();
 	LoadChainSampleCounts();
@@ -243,8 +247,27 @@ void WallDashCoach::RenderOverlay(CanvasWrapper canvas)
 	data.finished = hasLastAttempt ? &lastAttempt : nullptr;
 	data.latestFrame = tracker.LatestFrame();
 	data.stats = &stats;
+	data.statsOptions = CurrentStatsOptions();
+	data.loggingPaused = *loggingPaused && *attemptLogEnabled;
 	data.config = &tracker.GetConfig();
 	overlay.Draw(canvas, data);
+}
+
+walldash::StatsOptions WallDashCoach::CurrentStatsOptions() const
+{
+	walldash::StatsOptions options;
+	options.splitByWall = overlay.StatsByWall();
+	options.showSpeedGain = *statsShowSpeedGain;
+	options.fastMode = static_cast<walldash::FastDashMode>(std::clamp(*fastStatsMode, 0, 2));
+	options.fastSpeed = *fastSpeed;
+	return options;
+}
+
+bool WallDashCoach::ShouldLogAttempt(const AttemptResult& attempt) const
+{
+	if (!*attemptLogEnabled || *loggingPaused || !overlay.Enabled())
+		return false;
+	return !(*fastSkipCsv && walldash::IsFastDash(attempt, *fastSpeed));
 }
 
 void WallDashCoach::ResetSessionStats()
@@ -347,6 +370,23 @@ void WallDashCoach::RegisterCvars()
 	resettableCvars.push_back("walldash_attempt_log");
 	resettableCvars.push_back("walldash_console_log");
 
+	// Not saved, so a pause never carries over to the next game launch unnoticed.
+	cvarManager->registerCvar("walldash_logging_paused", "0", "Pause saving attempts to the CSV and the debug log, without turning the plugin off", true, true, 0, true, 1, false)
+		.bindTo(loggingPaused);
+
+	cvarManager->registerCvar("walldash_stats_speed_gain", "1", "Show the average speed gain of makes in the session stats", true, true, 0, true, 1)
+		.bindTo(statsShowSpeedGain);
+	cvarManager->registerCvar("walldash_fast_speed", "2100", "Speed at the first press (uu/s) above which a dash counts as fast", true, true, 0, true, 2300)
+		.bindTo(fastSpeed);
+	cvarManager->registerCvar("walldash_fast_stats_mode", "0", "Fast dashes in the session stats: 0 included, 1 shown separately, 2 left out", true, true, 0, true, 2)
+		.bindTo(fastStatsMode);
+	cvarManager->registerCvar("walldash_fast_skip_csv", "0", "Leave fast dashes out of the attempt CSV", true, true, 0, true, 1)
+		.bindTo(fastSkipCsv);
+	resettableCvars.push_back("walldash_stats_speed_gain");
+	resettableCvars.push_back("walldash_fast_speed");
+	resettableCvars.push_back("walldash_fast_stats_mode");
+	resettableCvars.push_back("walldash_fast_skip_csv");
+
 	cvarManager->registerCvar("walldash_debug_log", "0", "Write the per-tick debug log (Phases 0 and 3)", true, true, 0, true, 1, false)
 		.bindTo(debugLogEnabled);
 	cvarManager->getCvar("walldash_debug_log").addOnValueChanged(
@@ -399,10 +439,22 @@ float WallDashCoach::GetWorldTime()
 
 void WallDashCoach::UpdateGameSpeed()
 {
+	// A pause stops the physics ticks but not the clock, so a window that spans
+	// one would read as slow motion. Start the window again instead and keep the
+	// speed measured before the pause.
+	const auto now = std::chrono::steady_clock::now();
+	const double gapMs = std::chrono::duration<double, std::milli>(now - lastTickTime).count();
+	lastTickTime = now;
+	if (gameWrapper->IsPaused() || gapMs > kPauseGapMs)
+	{
+		speedWindowTicks = 0;
+		speedWindowStart = now;
+		return;
+	}
+
 	if (++speedWindowTicks < kGameSpeedWindowTicks)
 		return;
 
-	const auto now = std::chrono::steady_clock::now();
 	const double realMs = std::chrono::duration<double, std::milli>(now - speedWindowStart).count();
 	if (realMs > 0.0 && realMs < kGameSpeedMaxWindowMs)
 	{
@@ -452,12 +504,15 @@ void WallDashCoach::OnVehicleInput(CarWrapper car, const ControllerInput& input)
 
 	const float now = GetWorldTime();
 	RefreshSettings(car, now);
-	UpdateGameSpeed();
 
+	// Only new physics frames count, so repeat calls on one frame cannot skew the speed.
 	if (callsThisFrame == 1)
+	{
+		UpdateGameSpeed();
 		tracker.OnTick(BuildSample(car, input, frame));
+	}
 
-	if (*debugLogEnabled)
+	if (*debugLogEnabled && !*loggingPaused)
 		WriteDebugRow("tick", car, input, now);
 }
 
@@ -469,7 +524,7 @@ void WallDashCoach::OnCarEvent(CarWrapper car, const std::string& kind)
 
 	ForwardEvent(kind);
 
-	if (*debugLogEnabled)
+	if (*debugLogEnabled && !*loggingPaused)
 		WriteDebugRow(kind, car, car.GetInput(), GetWorldTime());
 }
 
@@ -485,6 +540,12 @@ void WallDashCoach::ForwardEvent(const std::string& kind)
 void WallDashCoach::OnAttemptFinished(const AttemptResult& attempt)
 {
 	attemptCount++;
+
+	// With the overlay hidden nothing is recorded, so the stats and the file
+	// pick up where they left off once it is shown again.
+	if (!overlay.Enabled())
+		return;
+
 	stats.Add(attempt);
 	lastAttempt = attempt;
 	hasLastAttempt = true;
@@ -492,10 +553,10 @@ void WallDashCoach::OnAttemptFinished(const AttemptResult& attempt)
 	if (*consoleLogEnabled)
 	{
 		LOG("{}", DescribeAttempt(attempt));
-		LOG("WallDash: session: {}", stats.Summary(overlay.StatsByWall()));
+		LOG("WallDash: session: {}", stats.Summary(CurrentStatsOptions()));
 	}
 
-	if (*attemptLogEnabled)
+	if (ShouldLogAttempt(attempt))
 	{
 		WriteAttemptRow(attempt);
 
@@ -693,7 +754,8 @@ void WallDashCoach::CloseDebugLog()
 void WallDashCoach::PrintStatus()
 {
 	LOG("Wall Dash Coach: session {}, {} attempts, game speed {:.2f}", sessionId, attemptCount, gameSpeed);
-	LOG("Wall Dash Coach: {}", stats.Summary(overlay.StatsByWall()));
+	LOG("Wall Dash Coach: {}", stats.Summary(CurrentStatsOptions()));
+	LOG("Wall Dash Coach: attempt logging {}", !*attemptLogEnabled ? "off" : (*loggingPaused ? "paused" : (!overlay.Enabled() ? "stopped, overlay hidden" : "on")));
 	LOG("Wall Dash Coach: attempt file: {}", attemptFile.empty() ? "none yet" : attemptFile.string());
 	LOG("Wall Dash Coach: debug log {}, file: {}, rows: {}", *debugLogEnabled ? "on" : "off", debugLogPath.empty() ? "none" : debugLogPath, debugRowsWritten);
 	LOG("Wall Dash Coach: SetVehicleInput calls on the latest physics frame: {}", callsThisFrame);

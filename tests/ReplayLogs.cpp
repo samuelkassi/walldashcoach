@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 		else if (kind == "dodge_begin") tracker.OnDodgeBegin();
 	}
 
-	std::cout << "\n" << stats.Summary(true) << "\n";
+	std::cout << "\n" << stats.Summary(StatsOptions{}) << "\n";
 	std::cout << "Best chain " << bestChain << "\n";
 	std::cout << "Chain sample left " << liveSample.left << " right " << liveSample.right << "\n";
 	std::cout << "Left wall " << makes[0] << "/" << attempts[0] << ", right wall " << makes[1] << "/" << attempts[1] << "\n";

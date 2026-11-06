@@ -16,6 +16,8 @@ struct OverlayData
 	const walldash::AttemptResult* finished = nullptr; // The last finished attempt, if any.
 	int latestFrame = 0;
 	const walldash::SessionStats* stats = nullptr;
+	walldash::StatsOptions statsOptions;
+	bool loggingPaused = false;
 	const walldash::AttemptConfig* config = nullptr;
 	int chainCurrent = 0;
 	int chainBest = 0;
@@ -44,6 +46,7 @@ public:
 	const std::vector<OverlayPanel>& Panels() const { return panels; }
 	const std::vector<std::string>& CvarNames() const { return cvarNames; }
 	bool StatsByWall() const { return *statsByWall; }
+	bool Enabled() const { return *enabled; }
 
 private:
 	struct Band
@@ -65,6 +68,7 @@ private:
 	void DrawChain(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 	void DrawSpeedLoss(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 	void DrawChainSample(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
+	void DrawLoggingPaused(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale);
 
 	void DrawRangeBar(CanvasWrapper& canvas, const std::string& text, float value, float maxValue, Vector2F pos, Vector2F size, float scale, const std::vector<Band>& bands);
 

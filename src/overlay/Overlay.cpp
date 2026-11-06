@@ -130,6 +130,7 @@ void Overlay::RegisterCvars(const std::shared_ptr<CVarManagerWrapper>& cvarManag
 	AddPanel(cvarManager, "speed", "Speed gain", 0.42f, 0.76f, true);
 	AddPanel(cvarManager, "distance", "Wall distance", 0.42f, 0.84f, false);
 	AddPanel(cvarManager, "stats", "Session stats", 0.42f, 0.87f, false);
+	AddPanel(cvarManager, "paused", "Logging paused note", 0.34f, 0.28f, true);
 
 	// These also need their feature turned on, so they are ready when it is.
 	AddPanel(cvarManager, "chain", "Chain counter", 0.64f, 0.76f, true);
@@ -159,6 +160,7 @@ void Overlay::Draw(CanvasWrapper& canvas, const OverlayData& data)
 		else if (panel.id == "speed") DrawSpeed(canvas, panel, data, scale);
 		else if (panel.id == "distance") DrawDistance(canvas, panel, data, scale);
 		else if (panel.id == "stats") DrawStats(canvas, panel, data, scale);
+		else if (panel.id == "paused" && data.loggingPaused) DrawLoggingPaused(canvas, panel, data, scale);
 		else if (panel.id == "chain" && *chainsOn) DrawChain(canvas, panel, data, scale);
 		else if (panel.id == "speedloss" && *chainsOn) DrawSpeedLoss(canvas, panel, data, scale);
 		else if (panel.id == "chainsample" && *sampleCounterOn) DrawChainSample(canvas, panel, data, scale);
@@ -488,11 +490,17 @@ void Overlay::DrawChainSample(CanvasWrapper& canvas, const OverlayPanel& panel, 
 	DrawText(canvas, std::format("Chain sample: left {}/{}, right {}/{}", data.chainSample.left, target, data.chainSample.right, target), pos, kTextScale * scale, done ? kGreen : kWhite);
 }
 
+void Overlay::DrawLoggingPaused(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData&, float scale)
+{
+	const Vector2F pos{ *panel.x * screen.X, *panel.y * screen.Y };
+	DrawText(canvas, "Logging paused: attempts are not saved", pos, kTextScale * scale, kYellow);
+}
+
 void Overlay::DrawStats(CanvasWrapper& canvas, const OverlayPanel& panel, const OverlayData& data, float scale)
 {
 	if (!data.stats)
 		return;
-	const std::vector<std::string> lines = data.stats->Lines(*statsByWall);
+	const std::vector<std::string> lines = data.stats->Lines(data.statsOptions);
 	const float rowHeight = 22.f * scale;
 
 	// More lines appear as more kinds of attempt are played, so the panel moves

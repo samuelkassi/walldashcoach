@@ -30,7 +30,7 @@ The default view shows the timing bars, the verdict, the stick display and speed
 - **Stick display:** your stick's path from the first press to the flip, one dot per tick, so widely spaced dots mean a fast flick. The coloured rim marks good flip angles for the wall you are on. The line shows the direction you actually flipped, and the yellow diamond is your dodge deadzone. The game adds up pitch, yaw and roll to compare against the deadzone, which is why it is a diamond rather than a circle.
 - **Speed gain:** what the dash gained or lost, with your speed before and after.
 - **Max distance from the wall** (optional).
-- **Session stats** (optional): makes and attempts, split by wall. Flat walls, curves and corners, and slowed-down play are counted separately.
+- **Session stats** (optional): makes and attempts with the success rate, average press to press and average speed gain of makes, split by wall. Flat walls, curves and corners, and slowed-down play are counted separately. The speed gain can be turned off.
 - **Surface note** (optional, at the top): shows when an attempt on a curve or corner is logged separately.
 
 Three greens almost always means a make. If you are missing, start with press to press and flip angle, as those matter most. Going faster helps too.
@@ -43,6 +43,12 @@ Everything can be changed in the settings window, including every band and each 
 
 **Chain dashes** (off by default): shows your current and best chain and the speed lost between dashes. A chain continues while each dash is a make and the next jump comes within 1 second of landing. An optional counter under Advanced tracks how many chain dashes you have recorded per wall.
 
+**Fast dashes:** dashes faster than a speed you choose (2100 uu/s along the wall at the first press by default) can be shown separately in the session stats or left out of them, and can also be left out of the attempt CSV.
+
+**Hiding the overlay:** while the overlay is hidden, attempts are not added to the session stats or saved to the CSV, so the numbers are where you left them when you show it again.
+
+**Pause logging:** a tickbox at the top of the settings window stops attempts being saved, without turning the plugin off. A yellow note on the overlay shows while it is on, and it is always off when the game starts.
+
 ![The overlay with the chain counter and speed lost between dashes showing](docs/images/overlay-chain.jpg)
 
 ![The settings window with its sections collapsed](docs/images/settings.jpg)
@@ -54,6 +60,7 @@ Everything can be changed in the settings window, including every band and each 
 | `walldash_reset_stats` | Clears the session stats, best chain and last result. |
 | `walldash_console_log 1` | Also prints each attempt to the console. |
 | `walldash_attempt_log 0` | Stops saving attempts to a file. On by default. |
+| `walldash_logging_paused 1` | Pauses saving attempts until set back to `0` or the game restarts. |
 | `walldash_debug_log 1` | Starts a detailed per-tick log. Set to `0` to stop. |
 | `walldash_debug_status` | Prints session stats, log paths and how many times each game event fired. |
 
