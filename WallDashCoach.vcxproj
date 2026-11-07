@@ -71,6 +71,9 @@
     <ClCompile Include="src\core\AttemptCsv.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\core\LocalTime.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\overlay\Overlay.cpp" />
     <ClCompile Include="src\SettingsWindow.cpp" />
     <ClCompile Include="third_party\imgui\imgui.cpp">
@@ -91,6 +94,7 @@
     <ClInclude Include="src\core\Attempt.h" />
     <ClInclude Include="src\core\AttemptTracker.h" />
     <ClInclude Include="src\core\AttemptCsv.h" />
+    <ClInclude Include="src\core\LocalTime.h" />
     <ClInclude Include="src\overlay\Overlay.h" />
     <ClInclude Include="third_party\imgui\imconfig.h" />
     <ClInclude Include="third_party\imgui\imgui.h" />

@@ -10,6 +10,7 @@
 #include "bakkesmod/wrappers/GameObject/CarComponent/VehicleSimWrapper.h"
 #include "bakkesmod/wrappers/GameObject/CarComponent/WheelWrapper.h"
 #include "bakkesmod/wrappers/SettingsWrapper.h"
+#include "core/LocalTime.h"
 
 #include <algorithm>
 #include <chrono>
@@ -93,12 +94,6 @@ namespace
 		return h.str();
 	}
 
-	std::chrono::local_time<std::chrono::seconds> LocalNow()
-	{
-		const auto zoned = std::chrono::zoned_time(std::chrono::current_zone(), std::chrono::system_clock::now());
-		return std::chrono::floor<std::chrono::seconds>(zoned.get_local_time());
-	}
-
 	std::string DescribeAttempt(const AttemptResult& a)
 	{
 		std::string line = std::format("WallDash: {} {} {}", a.make ? "MAKE" : "MISS", walldash::ToString(a.wallSide), walldash::ToString(a.surface));
@@ -127,12 +122,22 @@ void WallDashCoach::onLoad()
 {
 	_globalCvarManager = cvarManager;
 
-	sessionId = std::format("{:%Y%m%d_%H%M%S}", LocalNow());
+	sessionId = walldash::FormatLocalNow(walldash::kSessionIdFormat);
 	speedWindowStart = std::chrono::steady_clock::now();
 	lastTickTime = speedWindowStart;
 
 	RegisterCvars();
-	LoadChainSampleCounts();
+
+	// Reading old attempt files must never stop the plugin from loading.
+	try
+	{
+		LoadChainSampleCounts();
+	}
+	catch (const std::exception& e)
+	{
+		chainSample = walldash::ChainSampleCounts{};
+		LOG("Wall Dash Coach: could not read the old attempt files: {}", e.what());
+	}
 
 	cvarManager->registerNotifier("walldash_reset_stats",
 		[this](std::vector<std::string>) { ResetSessionStats(); },
@@ -570,7 +575,7 @@ std::filesystem::path WallDashCoach::AttemptFilePath()
 {
 	namespace fs = std::filesystem;
 
-	const std::string date = std::format("{:%Y-%m-%d}", std::chrono::floor<std::chrono::days>(LocalNow()));
+	const std::string date = walldash::FormatLocalNow(walldash::kFileDateFormat);
 	if (date == attemptFileDate && !attemptFile.empty())
 		return attemptFile;
 
@@ -619,7 +624,7 @@ void WallDashCoach::WriteAttemptRow(const AttemptResult& attempt)
 	if (isNew)
 		file << walldash::AttemptCsvHeader() << '\n';
 
-	const std::string timestamp = std::format("{:%Y-%m-%dT%H:%M:%S}", LocalNow());
+	const std::string timestamp = walldash::FormatLocalNow(walldash::kCsvTimestampFormat);
 	file << walldash::AttemptCsvRow(attempt, timestamp, sessionId, attemptCount) << '\n';
 }
 
@@ -724,7 +729,7 @@ bool WallDashCoach::OpenDebugLog()
 		return false;
 	}
 
-	const fs::path path = folder / std::format("debug_ticks_{:%Y-%m-%d_%H%M%S}.csv", LocalNow());
+	const fs::path path = folder / walldash::FormatLocalNow(walldash::kDebugLogNameFormat);
 	debugLogFile.open(path, std::ios::out | std::ios::trunc);
 	if (!debugLogFile.is_open())
 	{
